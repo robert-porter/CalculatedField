@@ -35,6 +35,7 @@ namespace MiniLanguage
         Else,
         While,
         Var,
+        Return,
         Function,
         Identifier
     }
@@ -97,6 +98,7 @@ namespace MiniLanguage
                 {"else", TokenType.Else},
                 {"while", TokenType.While},
                 {"var", TokenType.Var},
+                {"return", TokenType.Return},
                 {"function", TokenType.Function},
             };
         }

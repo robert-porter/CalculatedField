@@ -8,7 +8,7 @@ namespace MiniLanguage
 {
     class Environment
     {
-        Environment Parent;
+        public Environment Parent;
         Dictionary<String, Value> Identifiers;
 
         public Environment()

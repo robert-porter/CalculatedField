@@ -114,6 +114,32 @@ namespace MiniLanguage
         }
     }
 
+    class CallInstruction : Instruction
+    {
+        public String Name;
+        public int Location;
+        public List<String> ArgumentIdentifiers;
+
+        public override void Execute(VirtualMachine machine, ref int ip)
+        {
+            machine.PushReturnAddress(ip);
+            machine.PushScope();
+
+            ip = Location;
+        }
+    }
+
+    class ReturnInstruction : Instruction
+    {
+        
+        public override void Execute(VirtualMachine machine, ref int ip)
+        {
+            int address = machine.PopReturnAddress();
+            machine.PopScope();
+            ip = address;
+        }
+    }
+
     class JumpInstruction : Instruction
     {
         public int JumpLocation { get; set; }

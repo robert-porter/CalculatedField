@@ -12,18 +12,24 @@ namespace MiniLanguage
         {
             Lexer lexer = new Lexer(
             @"
+
+
 {
 
-var x = 41;
+function f(x, y, z) 
+{
+    if(x < 5) 
+    {
+        x = 200;
+    }
+    else 
+    {
+        x = 7;
+    }  
+    return x;
+}
 
-if(x < 5) 
-{
-    x = 1+2;
-}
-else 
-{
- x = 7;
-}
+var q = f(1, 2, 3);
 
 }
             "
@@ -35,14 +41,14 @@ else
 
             Node n = p.ParseProgram();
             Compiler c = new Compiler();
-            n.Accept(c);
+            c.Compile(n);
 
             VirtualMachine m = new VirtualMachine();
-            m.Run(c.Instructions);
+            m.Run(c.Instructions, c.StartAddress);
 
-            Console.WriteLine((m.GetVar("x") as NumberValue).DoubleVal);
+            Console.WriteLine((m.GetVar("q") as NumberValue).DoubleVal);
 
-                System.Console.ReadKey();
+            System.Console.ReadKey();
         }
     }
 }

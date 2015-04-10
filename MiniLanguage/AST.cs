@@ -16,9 +16,9 @@ namespace MiniLanguage
 
     }
 
-    class Identifier : Expression
+    class IdentifierExpression : Expression
     {
-        public Identifier(String name)
+        public IdentifierExpression(String name)
         {
             Name = name;
         }
@@ -30,9 +30,9 @@ namespace MiniLanguage
         }
     }
 
-    class Number : Expression
+    class NumberExpression : Expression
     {
-        public Number(String value)
+        public NumberExpression(String value)
         {
             Value = value;
         }
@@ -103,7 +103,7 @@ namespace MiniLanguage
 
     class FunctionCallExpression : Expression 
     {
-        public Identifier Identifier { get; set; }
+        public IdentifierExpression Identifier { get; set; }
         public List<Expression> Arguments { get; set; }
 
         public FunctionCallExpression()
@@ -131,11 +131,20 @@ namespace MiniLanguage
         }
     }
 
+    class ReturnStatement : Statement
+    {
+        public Expression Expression;
+
+        public override void Accept(Visitor visitor)
+        {
+            visitor.Visit(this);
+        }
+    }
 
 
     class AssignmentStatement : Statement
     {
-        public Identifier Left { get; set; }
+        public IdentifierExpression Left { get; set; }
         public Expression Right { get; set; }
 
         
@@ -157,12 +166,13 @@ namespace MiniLanguage
         }
     }
 
-    class FunctionDeclarationExpression : Expression
+    class FunctionDeclarationStatement : Statement
     {
-        public List<Identifier> Arguments { get; set; }
+        public String Name;
+        public List<IdentifierExpression> Arguments { get; set; }
         public BlockStatement Body { get; set; }
 
-        public FunctionDeclarationExpression()
+        public FunctionDeclarationStatement()
         {
             Body = new BlockStatement();
         }

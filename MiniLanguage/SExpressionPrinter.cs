@@ -39,12 +39,17 @@ namespace MiniLanguage
             }
         }
 
-        public override void Visit(Identifier identifier)
+        public override void Visit(ExpressionStatement expessionStatement)
+        {
+            expessionStatement.Accept(this);
+        }
+
+        public override void Visit(IdentifierExpression identifier)
         {
             Write(identifier.Name);
         }
 
-        public override void Visit(Number number)
+        public override void Visit(NumberExpression number)
         {
             Write(number.Value);
         }
@@ -187,9 +192,10 @@ namespace MiniLanguage
             Write(")");
         }
 
-        public override void Visit(FunctionDeclarationExpression funcDeclStatement)
+        public override void Visit(FunctionDeclarationStatement funcDeclStatement)
         {
-            Write("(function");
+            Write("(");
+            Write(funcDeclStatement.Name);
             if (funcDeclStatement.Arguments != null)
             {
                 Write(" (");
@@ -208,5 +214,11 @@ namespace MiniLanguage
             IndentLevel--;
         }
 
+        public override void Visit(ReturnStatement returnStatement)
+        {
+            Write("(return ");
+            returnStatement.Expression.Accept(this);
+            Write(")");
+        }
     }
 }

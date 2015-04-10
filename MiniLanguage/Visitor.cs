@@ -6,66 +6,20 @@ using System.Threading.Tasks;
 
 namespace MiniLanguage
 {
-    class Visitor
+    abstract class Visitor
     {
-        public virtual void Visit(Identifier identifier)
-        {
-
-        }
-
-        public virtual void Visit(Number number)
-        {
-
-        }
-
-        public virtual void Visit(BinaryExpression binaryExpression)
-        {
-        }
-
-        public virtual void Visit(UnaryExpression unaryExpression)
-        {
-
-        }
-
-
-        public virtual void Visit(AssignmentStatement assignmentStatement)
-        {
-
-        }
-
-        public virtual void Visit(VarDeclarationStatement varDeclStatement)
-        {
-        }
-
-        public virtual void Visit(BlockStatement blockStatement)
-        {
-
-        }
-
-
-        public virtual void Visit(IfStatement ifStatement)
-        {
-
-        }
-
-        public virtual void Visit(WhileStatement whileStatement)
-        {
-
-        }
-
-        public virtual void Visit(FunctionCallExpression funcCallExpression)
-        {
-
-        }
-
-        public virtual void Visit(FunctionDeclarationExpression funcDeclStatement)
-        {
-
-        }
-
-        public virtual void Visit(ExpressionStatement expessionStatement)
-        {
-
-        }
+        public abstract void Visit(IdentifierExpression identifier);
+        public abstract void Visit(NumberExpression number);
+        public abstract void Visit(BinaryExpression binaryExpression);
+        public abstract void Visit(UnaryExpression unaryExpression);
+        public abstract void Visit(AssignmentStatement assignmentStatement);
+        public abstract void Visit(VarDeclarationStatement varDeclStatement);
+        public abstract void Visit(BlockStatement blockStatement);
+        public abstract void Visit(IfStatement ifStatement);
+        public abstract void Visit(WhileStatement whileStatement);
+        public abstract void Visit(FunctionCallExpression funcCallExpression);
+        public abstract void Visit(FunctionDeclarationStatement funcDeclStatement);
+        public abstract void Visit(ExpressionStatement expessionStatement);
+        public abstract void Visit(ReturnStatement returnStatement);
     }
 }
