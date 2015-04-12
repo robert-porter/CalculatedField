@@ -11,42 +11,39 @@ namespace MiniLanguage
         static void Main(string[] args)
         {
             Lexer lexer = new Lexer(
-            @"
-
-
+@"
 {
 
-function f(x, y, z) 
+function g(z) { return z * 2; }
+
+function f(x) 
 {
-    if(x < 5) 
-    {
-        x = 200;
-    }
-    else 
-    {
-        x = 7;
-    }  
-    return x;
+  var p = 2;
+ if(x < 2) 
+   return 0;
+else 
+  return 1 + f(x-1); 
 }
 
-var q = f(1, 2, 3);
-
+var q = f(10);
 }
-            "
+"
                 );
+
 
             lexer.Lex();
 
-            Parser p = new Parser(lexer.Tokens);
+            Parser parser = new Parser(lexer.Tokens);
 
-            Node n = p.ParseProgram();
-            Compiler c = new Compiler();
-            c.Compile(n);
+            SyntaxTree node = parser.ParseProgram();
+            ScopeChecker scopeChecker = new ScopeChecker();
+            node.Accept(scopeChecker);
+            Compiler compiler = new Compiler();
+            compiler.Compile(node);
+            VirtualMachine machine = new VirtualMachine();
+            machine.Run(compiler.Instructions, compiler.StartAddress);
 
-            VirtualMachine m = new VirtualMachine();
-            m.Run(c.Instructions, c.StartAddress);
-
-            Console.WriteLine((m.GetVar("q") as NumberValue).DoubleVal);
+            Console.WriteLine((machine.GetVar("q") as NumberValue).DoubleVal);
 
             System.Console.ReadKey();
         }

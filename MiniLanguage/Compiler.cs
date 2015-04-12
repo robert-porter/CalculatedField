@@ -19,7 +19,7 @@ namespace MiniLanguage
             FunctionLocations = new Dictionary<string, int>();
         }
 
-        public void Compile(Node root)
+        public void Compile(SyntaxTree root)
         {
             root.Accept(this);
            
@@ -43,6 +43,15 @@ namespace MiniLanguage
             switch (binaryExpression.Op) {  
                 case BinaryExpression.Operator.Add:
                     Instructions.Add(new AddInstruction());
+                    break;
+                case BinaryExpression.Operator.Subtract:
+                    Instructions.Add(new SubtractInstruction());
+                    break;
+                case BinaryExpression.Operator.Multiply:
+                    Instructions.Add(new MultiplyInstruction());
+                    break;
+                case BinaryExpression.Operator.Divide:
+                    Instructions.Add(new DivideInstruction());
                     break;
                 case BinaryExpression.Operator.Less:
                     Instructions.Add(new LessInstruction());
@@ -91,9 +100,9 @@ namespace MiniLanguage
             }
         }
 
-        public override void Visit(ExpressionStatement expessionStatement)
+        public override void Visit(ExpressionStatement expressionStatement)
         {
-            expessionStatement.Expression.Accept(this);
+            expressionStatement.Expression.Accept(this);
             Instructions.Add(new PopInstruction());
         }
 

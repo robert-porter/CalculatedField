@@ -39,9 +39,9 @@ namespace MiniLanguage
             }
         }
 
-        public override void Visit(ExpressionStatement expessionStatement)
+        public override void Visit(ExpressionStatement expressionStatement)
         {
-            expessionStatement.Accept(this);
+            expressionStatement.Accept(this);
         }
 
         public override void Visit(IdentifierExpression identifier)

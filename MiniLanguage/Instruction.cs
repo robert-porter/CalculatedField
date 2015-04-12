@@ -33,6 +33,36 @@ namespace MiniLanguage
             machine.Push(new NumberValue(left.DoubleVal + right.DoubleVal));
         }
     }
+    class SubtractInstruction : Instruction
+    {
+        public override void Execute(VirtualMachine machine, ref int ip)
+        {
+            NumberValue right = machine.Pop() as NumberValue;
+            NumberValue left = machine.Pop() as NumberValue;
+
+            machine.Push(new NumberValue(left.DoubleVal - right.DoubleVal));
+        }
+    }
+    class MultiplyInstruction : Instruction
+    {
+        public override void Execute(VirtualMachine machine, ref int ip)
+        {
+            NumberValue right = machine.Pop() as NumberValue;
+            NumberValue left = machine.Pop() as NumberValue;
+
+            machine.Push(new NumberValue(left.DoubleVal * right.DoubleVal));
+        }
+    }
+    class DivideInstruction : Instruction
+    {
+        public override void Execute(VirtualMachine machine, ref int ip)
+        {
+            NumberValue right = machine.Pop() as NumberValue;
+            NumberValue left = machine.Pop() as NumberValue;
+
+            machine.Push(new NumberValue(left.DoubleVal / right.DoubleVal));
+        }
+    }
 
     class LessInstruction : Instruction
     {

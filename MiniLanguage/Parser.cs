@@ -466,7 +466,7 @@ namespace MiniLanguage
             return null;
         }
 
-        public Node ParseProgram()
+        public SyntaxTree ParseProgram()
         {
             Statement e = ParseStatement();
             return e;

@@ -6,20 +6,20 @@ using System.Threading.Tasks;
 
 namespace MiniLanguage
 {
-    abstract class Visitor
+    class Visitor
     {
-        public abstract void Visit(IdentifierExpression identifier);
-        public abstract void Visit(NumberExpression number);
-        public abstract void Visit(BinaryExpression binaryExpression);
-        public abstract void Visit(UnaryExpression unaryExpression);
-        public abstract void Visit(AssignmentStatement assignmentStatement);
-        public abstract void Visit(VarDeclarationStatement varDeclStatement);
-        public abstract void Visit(BlockStatement blockStatement);
-        public abstract void Visit(IfStatement ifStatement);
-        public abstract void Visit(WhileStatement whileStatement);
-        public abstract void Visit(FunctionCallExpression funcCallExpression);
-        public abstract void Visit(FunctionDeclarationStatement funcDeclStatement);
-        public abstract void Visit(ExpressionStatement expessionStatement);
-        public abstract void Visit(ReturnStatement returnStatement);
+        public virtual void Visit(IdentifierExpression identifier) { }
+        public virtual void Visit(NumberExpression number) { }
+        public virtual void Visit(BinaryExpression binaryExpression) { }
+        public virtual void Visit(UnaryExpression unaryExpression) { }
+        public virtual void Visit(AssignmentStatement assignmentStatement) { }
+        public virtual void Visit(VarDeclarationStatement varDeclStatement) { }
+        public virtual void Visit(BlockStatement blockStatement) { }
+        public virtual void Visit(IfStatement ifStatement) { }
+        public virtual void Visit(WhileStatement whileStatement) { }
+        public virtual void Visit(FunctionCallExpression funcCallExpression) { }
+        public virtual void Visit(FunctionDeclarationStatement funcDeclStatement) { }
+        public virtual void Visit(ExpressionStatement expressionStatement) { }
+        public virtual void Visit(ReturnStatement returnStatement) { }
     }
 }

@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace MiniLanguage
 {
-    abstract class Node
+    abstract class SyntaxTree
     {
         public abstract void Accept(Visitor visitor);
     }
 
-    abstract class Expression : Node
+    abstract class Expression : SyntaxTree
     {
 
     }
@@ -116,7 +116,7 @@ namespace MiniLanguage
         }
     }
 
-    abstract class Statement : Node
+    abstract class Statement : SyntaxTree
     {
 
     }
