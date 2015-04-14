@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MiniLanguage
 {
-    class Visitor
+    abstract class Visitor
     {
         public virtual void Visit(IdentifierExpression identifier) { }
         public virtual void Visit(NumberExpression number) { }
@@ -21,5 +21,6 @@ namespace MiniLanguage
         public virtual void Visit(FunctionDeclarationStatement funcDeclStatement) { }
         public virtual void Visit(ExpressionStatement expressionStatement) { }
         public virtual void Visit(ReturnStatement returnStatement) { }
+        public abstract void Visit(ProgramNode program);
     }
 }

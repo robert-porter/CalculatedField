@@ -17,7 +17,6 @@ namespace MiniLanguage
         public ScopeChecker()
         {
             Identifiers = new List<HashSet<string>>();
-            Identifiers.Add(new HashSet<string>()); // start with the global scope.
             funcDeclArguments = new List<string>();
         }
 
@@ -31,6 +30,7 @@ namespace MiniLanguage
 
             return false;
         }
+
 
         void AddIdentifier(String identifier)
         {
@@ -47,7 +47,32 @@ namespace MiniLanguage
             Identifiers.RemoveAt(Identifiers.Count - 1);
         }
 
+        public override void Visit(ProgramNode program)
+        {
+            // order does not matter at global scope.
+            // add everything global before any checks.
+            Identifiers.Add(new HashSet<string>());
 
+            foreach (FunctionDeclarationStatement funcDecl in program.FunctionDeclarations)
+            {
+                AddIdentifier(funcDecl.Name);
+            }
+            foreach (VarDeclarationStatement varDecl in program.VariableDeclarations)
+            {
+                AddIdentifier(varDecl.Identifier);
+            }
+
+            foreach (FunctionDeclarationStatement funcDecl in program.FunctionDeclarations)
+            {
+                funcDecl.Accept(this);
+            }
+            foreach (VarDeclarationStatement varDecl in program.VariableDeclarations)
+            {
+                varDecl.Accept(this);
+            }
+
+ 
+        }
         public override void Visit(IdentifierExpression identifier)
         {
             if (!Check(identifier.Name))

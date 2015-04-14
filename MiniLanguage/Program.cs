@@ -12,21 +12,16 @@ namespace MiniLanguage
         {
             Lexer lexer = new Lexer(
 @"
-{
+
+var q = f(10);
 
 function g(z) { return z * 2; }
 
 function f(x) 
 {
-  var p = 2;
- if(x < 2) 
-   return 0;
-else 
-  return 1 + f(x-1); 
+return x;
 }
 
-var q = f(10);
-}
 "
                 );
 
@@ -35,7 +30,7 @@ var q = f(10);
 
             Parser parser = new Parser(lexer.Tokens);
 
-            SyntaxTree node = parser.ParseProgram();
+            ProgramNode node = parser.ParseProgram();
             ScopeChecker scopeChecker = new ScopeChecker();
             node.Accept(scopeChecker);
             Compiler compiler = new Compiler();
@@ -49,3 +44,4 @@ var q = f(10);
         }
     }
 }
+

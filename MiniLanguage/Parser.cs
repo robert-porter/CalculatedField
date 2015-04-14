@@ -466,10 +466,53 @@ namespace MiniLanguage
             return null;
         }
 
-        public SyntaxTree ParseProgram()
+        public ProgramNode ParseProgram()
         {
-            Statement e = ParseStatement();
-            return e;
+            ProgramNode program = new ProgramNode();
+
+            while (Index < Tokens.Count)
+            {
+                if (Accept(TokenType.Var))
+                {
+                    VarDeclarationStatement varDeclStatement = new VarDeclarationStatement();
+                    if (!Peek(TokenType.Identifier))
+                        Error("identifier expected");
+                    varDeclStatement.Identifier = Read().Contents;
+
+                    if (Peek(TokenType.Equal))
+                    {
+                        Read();
+                        varDeclStatement.InitialValue = ParseExpression();
+                    }
+                    Expect(TokenType.Semicolon);
+
+                    program.VariableDeclarations.Add(varDeclStatement);
+                }
+
+                else if (Accept(TokenType.Function))
+                {
+                    FunctionDeclarationStatement funcDecl = new FunctionDeclarationStatement();
+                    if (!Peek(TokenType.Identifier))
+                        throw new Exception("Identifier expected");
+                    funcDecl.Name = Read().Contents;
+
+                    Expect(TokenType.OpenParen);
+
+                    funcDecl.Arguments = ParseFunctionDeclarationArguments();
+                    Expect(TokenType.CloseParen);
+                    Expect(TokenType.OpenBrace);
+                    while (!Peek(TokenType.CloseBrace))
+                    {
+                        Statement statement = ParseStatement();
+                        funcDecl.Body.Statements.Add(statement);
+                    }
+
+                    Expect(TokenType.CloseBrace);
+
+                    program.FunctionDeclarations.Add(funcDecl);
+                }
+            }
+            return program;
         }
     }
 }

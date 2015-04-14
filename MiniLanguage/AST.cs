@@ -6,12 +6,30 @@ using System.Threading.Tasks;
 
 namespace MiniLanguage
 {
-    abstract class SyntaxTree
+    abstract class ASTNode
     {
         public abstract void Accept(Visitor visitor);
     }
 
-    abstract class Expression : SyntaxTree
+    class ProgramNode : ASTNode
+    {
+
+        public List<VarDeclarationStatement> VariableDeclarations;
+        public List<FunctionDeclarationStatement> FunctionDeclarations;
+
+        public ProgramNode()
+        {
+            VariableDeclarations = new List<VarDeclarationStatement>();
+            FunctionDeclarations = new List<FunctionDeclarationStatement>();
+        }
+
+        public override void Accept(Visitor visitor)
+        {
+            visitor.Visit(this);
+        } 
+    }
+
+    abstract class Expression : ASTNode
     {
 
     }
@@ -116,7 +134,7 @@ namespace MiniLanguage
         }
     }
 
-    abstract class Statement : SyntaxTree
+    abstract class Statement : ASTNode
     {
 
     }

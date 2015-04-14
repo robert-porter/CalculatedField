@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace MiniLanguage
 {
+
     class Compiler : Visitor
     {
 
@@ -19,12 +20,37 @@ namespace MiniLanguage
             FunctionLocations = new Dictionary<string, int>();
         }
 
-        public void Compile(SyntaxTree root)
+        public void Compile(ProgramNode program)
         {
-            root.Accept(this);
+            program.Accept(this);
+
+
+            // convert function names to function locations.
+            foreach (Instruction instruction in Instructions)
+            {
+                if (instruction is CallInstruction)
+                {
+                    CallInstruction callInstruction = instruction as CallInstruction;
+                    callInstruction.Location = FunctionLocations[callInstruction.Name] - 1; 
+                }
+            }
            
         }
 
+        public override void Visit(ProgramNode program)
+        {
+
+            foreach (FunctionDeclarationStatement funcDecl in program.FunctionDeclarations)
+            {
+                funcDecl.Accept(this);
+            }
+
+            foreach (VarDeclarationStatement varDecl in program.VariableDeclarations)
+            {
+                varDecl.Accept(this);
+            }
+
+        } 
         public override void Visit(UnaryExpression unaryExpression)
         {
             throw new NotImplementedException();
@@ -130,10 +156,6 @@ namespace MiniLanguage
 
         public override void Visit(FunctionDeclarationStatement funcDeclStatement)
         {
-
-            // Does not work for nested functions.
-            // currently need all function definitions at top of file, they cannot be between statements 
-            // this will be changed later...
             FunctionLocations.Add(funcDeclStatement.Name, Instructions.Count);
 
             for (int i = funcDeclStatement.Arguments.Count - 1; i >= 0; i-- )
@@ -160,26 +182,16 @@ namespace MiniLanguage
         public override void Visit(FunctionCallExpression funcCallExpression)
         {
             String name = funcCallExpression.Identifier.Name;
-            
 
 
-            if (FunctionLocations.ContainsKey(name))
+            CallInstruction callInstruction = new CallInstruction();
+            callInstruction.Name = name;
+            // minus 1 since we will increment the pointer after the call expression is executed.
+            foreach (Expression argument in funcCallExpression.Arguments)
             {
-                CallInstruction callInstruction = new CallInstruction();
-                callInstruction.Name = name;
-                // minus 1 since we will increment the pointer after the call expression is executed.
-                callInstruction.Location = FunctionLocations[name] - 1; 
-                foreach (Expression argument in funcCallExpression.Arguments)
-                {
-                    argument.Accept(this); // this leaves all of the expression results on the stack
-                }
-                Instructions.Add(callInstruction);
-
+                argument.Accept(this); // this leaves all of the expression results on the stack
             }
-            else
-            {
-                throw new Exception("Calling undeclared function.");
-            }
+            Instructions.Add(callInstruction);
             
         }
     }

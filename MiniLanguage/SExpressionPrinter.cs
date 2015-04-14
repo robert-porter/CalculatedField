@@ -39,6 +39,18 @@ namespace MiniLanguage
             }
         }
 
+        public override void Visit(ProgramNode program)
+        {
+            foreach (VarDeclarationStatement varDecl in program.VariableDeclarations)
+            {
+                varDecl.Accept(this);
+            }
+
+            foreach (FunctionDeclarationStatement funcDecl in program.FunctionDeclarations)
+            {
+                funcDecl.Accept(this);
+            }
+        }
         public override void Visit(ExpressionStatement expressionStatement)
         {
             expressionStatement.Accept(this);
