@@ -1,4 +1,5 @@
 # MiniLang
-Small and simple compiler for a C like language and a VM.
+
+Compiler and VM for a simple C like language.
 
 WIP...
