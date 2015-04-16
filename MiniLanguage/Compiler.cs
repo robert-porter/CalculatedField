@@ -11,13 +11,38 @@ namespace MiniLanguage
     {
 
         public Dictionary<String, int> FunctionLocations;
-        public List<Instruction> Instructions { get; set; }
-        public int StartAddress;
         
+        // a list of pairs of function names and call argument indices.
+        // after all functions are compiled, go back and fill in all the call instruction with the 
+        // funciton lcocations.
+        public List<Tuple<String, int>> CallArguments;
+        public List<Instruction> Instructions { get; set; }
+        public List<Value> Constants;
+        public int StartAddress;
+
+        public int NextVariableLocation;
+        Environment VariableLocations;
+
+        public void PushScope()
+        {
+            Environment newEnv = new Environment();
+            newEnv.Parent = VariableLocations;
+            VariableLocations = newEnv;
+        }
+        public void PopScope()
+        {
+            VariableLocations = VariableLocations.Parent;
+        }
+
         public Compiler()
         {
             Instructions = new List<Instruction>();
             FunctionLocations = new Dictionary<string, int>();
+            Constants = new List<Value>();
+            Constants.Add(new Value(0.0f));
+            VariableLocations = new Environment();
+            CallArguments = new List<Tuple<string, int>>();
+            PushScope();
         }
 
         public void Compile(ProgramNode program)
@@ -26,13 +51,9 @@ namespace MiniLanguage
 
 
             // convert function names to function locations.
-            foreach (Instruction instruction in Instructions)
+            foreach (Tuple<String, int> callArg in CallArguments)
             {
-                if (instruction is CallInstruction)
-                {
-                    CallInstruction callInstruction = instruction as CallInstruction;
-                    callInstruction.Location = FunctionLocations[callInstruction.Name] - 1; 
-                }
+                Instructions[callArg.Item2] = (Instruction) FunctionLocations[callArg.Item1];
             }
            
         }
@@ -68,19 +89,19 @@ namespace MiniLanguage
             binaryExpression.Right.Accept(this);
             switch (binaryExpression.Op) {  
                 case BinaryExpression.Operator.Add:
-                    Instructions.Add(new AddInstruction());
+                    Instructions.Add(Instruction.Add);
                     break;
                 case BinaryExpression.Operator.Subtract:
-                    Instructions.Add(new SubtractInstruction());
+                    Instructions.Add(Instruction.Subtract);
                     break;
                 case BinaryExpression.Operator.Multiply:
-                    Instructions.Add(new MultiplyInstruction());
+                    Instructions.Add(Instruction.Multiply);
                     break;
                 case BinaryExpression.Operator.Divide:
-                    Instructions.Add(new DivideInstruction());
+                    Instructions.Add(Instruction.Divide);
                     break;
                 case BinaryExpression.Operator.Less:
-                    Instructions.Add(new LessInstruction());
+                    Instructions.Add(Instruction.Less);
                     break;
             }
         }
@@ -88,48 +109,58 @@ namespace MiniLanguage
         public override void Visit(NumberExpression number)
         {
             double value = double.Parse(number.Value);
-            Instructions.Add(new LoadNumberInstruction(new NumberValue(value)));
+            Constants.Add(new Value(value));
+            Instructions.Add(Instruction.LoadNumber);
+            Instructions.Add((Instruction)Constants.Count - 1);
+
         }
 
         public override void Visit(IdentifierExpression identifier)
         {
-            Instructions.Add(new LoadVariableInstruction(identifier.Name));
+            Instructions.Add(Instruction.LoadVariable);
+            Instructions.Add((Instruction)VariableLocations.GetLocation(identifier.Name));
         }
 
         public override void Visit(IfStatement ifStatement)
         {
-            JumpOnFalseInstruction jumpOnFalseInstruction = new JumpOnFalseInstruction();
-            JumpInstruction jumpPastElseInstruction = null;
+            int jumpPastElseArgLocation = 0;
+            int jumpOnFalseArgLocation = 0;
 
             ifStatement.Condition.Accept(this);
-            Instructions.Add(jumpOnFalseInstruction);
+            Instructions.Add(Instruction.JumpOnFalse);
+            jumpOnFalseArgLocation = Instructions.Count;
+            Instructions.Add((Instruction)0); // placeholder for jump on false argument
+            
             ifStatement.Consequent.Accept(this);
             if (ifStatement.Alternate != null)
             {
-                jumpPastElseInstruction = new JumpInstruction();
-                Instructions.Add(jumpPastElseInstruction);
+                Instructions.Add(Instruction.Jump);
+                jumpPastElseArgLocation = Instructions.Count;
+                Instructions.Add((Instruction)0); // placeholder for jump argument
             }
-            jumpOnFalseInstruction.JumpLocation = Instructions.Count;
+            Instructions[jumpOnFalseArgLocation] = (Instruction) Instructions.Count;
             if (ifStatement.Alternate != null)
             {
                 ifStatement.Alternate.Accept(this);
-                jumpPastElseInstruction.JumpLocation = Instructions.Count;
+                Instructions[jumpPastElseArgLocation] = (Instruction) Instructions.Count;
             }
             
         }
 
         public override void Visit(BlockStatement blockStatement)
         {
+            PushScope();
             foreach(Statement statement in blockStatement.Statements)
             {
                 statement.Accept(this);
             }
+            PopScope();
         }
 
         public override void Visit(ExpressionStatement expressionStatement)
         {
             expressionStatement.Expression.Accept(this);
-            Instructions.Add(new PopInstruction());
+            Instructions.Add(Instruction.Pop);
         }
 
         public override void Visit(AssignmentStatement assignmentStatement)
@@ -137,38 +168,54 @@ namespace MiniLanguage
             if(assignmentStatement.Right != null)
             {
                 assignmentStatement.Right.Accept(this);
-                Instructions.Add(new StoreVariableInstruction(assignmentStatement.Left.Name));
+                Instructions.Add(Instruction.StoreVariable);
+                Instructions.Add((Instruction) VariableLocations.GetLocation(assignmentStatement.Left.Name));
             }
         }
 
         public override void Visit(VarDeclarationStatement varDeclStatement)
         {
-            NewVariableInstruction newVariableInstuction = new NewVariableInstruction(varDeclStatement.Identifier);
-            Instructions.Add(newVariableInstuction);
+            VariableLocations.AddLocation(varDeclStatement.Identifier, NextVariableLocation);
+
+            Instructions.Add(Instruction.NewVariable);
 
             if (varDeclStatement.InitialValue != null)
             {
                 varDeclStatement.InitialValue.Accept(this);
-                StoreVariableInstruction storeVariableInstruction = new StoreVariableInstruction(varDeclStatement.Identifier);
-                Instructions.Add(storeVariableInstruction);
+
+                Instructions.Add(Instruction.StoreVariable);
+                Instructions.Add((Instruction) NextVariableLocation);
             }
+
+            NextVariableLocation++;
         }
 
         public override void Visit(FunctionDeclarationStatement funcDeclStatement)
         {
+            PushScope();
+            NextVariableLocation = 0;
+
             FunctionLocations.Add(funcDeclStatement.Name, Instructions.Count);
 
             for (int i = funcDeclStatement.Arguments.Count - 1; i >= 0; i-- )
             {
-                Instructions.Add(new NewVariableInstruction(funcDeclStatement.Arguments[i].Name));
-                Instructions.Add(new StoreVariableInstruction(funcDeclStatement.Arguments[i].Name));
+                Instructions.Add(Instruction.NewVariable);
+                Instructions.Add(Instruction.StoreVariable);
+                Instructions.Add((Instruction)NextVariableLocation);
+                VariableLocations.AddLocation(funcDeclStatement.Arguments[i].Name, NextVariableLocation);
+                NextVariableLocation++;
             }
             funcDeclStatement.Body.Accept(this);
 
-            // if there is no manual return.
-            Instructions.Add(new LoadNumberInstruction(new NumberValue(0))); 
-            Instructions.Add(new ReturnInstruction());
+            // return 0
+            Instructions.Add(Instruction.LoadNumber);
+            Instructions.Add((Instruction)0);
+            Instructions.Add(Instruction.Return);
 
+            NextVariableLocation = 0;
+            PopScope();
+            
+            // since we first generate code for all the global functions, the gloabl code starts after the last global function.
             StartAddress = Instructions.Count;
         }
 
@@ -176,7 +223,7 @@ namespace MiniLanguage
         {
             // this will leave the result on the stack.
             returnStatement.Expression.Accept(this);
-            Instructions.Add(new ReturnInstruction());
+            Instructions.Add(Instruction.Return);
         }
 
         public override void Visit(FunctionCallExpression funcCallExpression)
@@ -184,14 +231,15 @@ namespace MiniLanguage
             String name = funcCallExpression.Identifier.Name;
 
 
-            CallInstruction callInstruction = new CallInstruction();
-            callInstruction.Name = name;
             // minus 1 since we will increment the pointer after the call expression is executed.
             foreach (Expression argument in funcCallExpression.Arguments)
             {
                 argument.Accept(this); // this leaves all of the expression results on the stack
             }
-            Instructions.Add(callInstruction);
+            Instructions.Add(Instruction.Call);
+            Instructions.Add((Instruction)0); // placeholder for the function location
+            CallArguments.Add(new Tuple<string, int>(name, Instructions.Count - 1));
+
             
         }
     }

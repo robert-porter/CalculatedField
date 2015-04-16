@@ -8,30 +8,28 @@ using System.Threading.Tasks;
 namespace MiniLanguage
 {
     
-    class Value
+    struct Value
     {
-
-    }
-
-    class NumberValue : Value
-    {
-        public NumberValue(double d) { 
+        public Value(double d)
+        {
             DoubleVal = d;
+            StringVal = "";
+            BoolVal = false;
         }
-        public double DoubleVal;
-    }
-
-    class BoolValue : Value
-    {
-        public BoolValue(bool b)
+        public Value(String s)
+        {
+            StringVal = s;
+            DoubleVal = 0;
+            BoolVal = false;
+        }
+        public Value(bool b) 
         {
             BoolVal = b;
-        }
-        public bool BoolVal;
-    }
-
-    class StringValue : Value
-    {
+            DoubleVal = 0;
+            StringVal = "";
+        } 
+        public double DoubleVal;
         public String StringVal;
+        public bool BoolVal;
     }
 }

@@ -13,13 +13,14 @@ namespace MiniLanguage
             Lexer lexer = new Lexer(
 @"
 
-var q = f(10);
+var q = f(1);
 
-function g(z) { return z * 2; }
-
-function f(x) 
-{
-return x;
+function f(x) { 
+    var z = 34;
+    if(x < 2) 
+        return z;
+    else 
+        return 1;
 }
 
 "
@@ -36,9 +37,9 @@ return x;
             Compiler compiler = new Compiler();
             compiler.Compile(node);
             VirtualMachine machine = new VirtualMachine();
-            machine.Run(compiler.Instructions, compiler.StartAddress);
+            machine.Run(compiler.Instructions, compiler.Constants, compiler.StartAddress);
 
-            Console.WriteLine((machine.GetVar("q") as NumberValue).DoubleVal);
+            Console.WriteLine(machine.GetVar(0).DoubleVal);
 
             System.Console.ReadKey();
         }

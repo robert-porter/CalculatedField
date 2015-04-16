@@ -511,6 +511,10 @@ namespace MiniLanguage
 
                     program.FunctionDeclarations.Add(funcDecl);
                 }
+                else
+                {
+                    throw new Exception("Unexpected token on line: " + Peek().Line.ToString());
+                }
             }
             return program;
         }

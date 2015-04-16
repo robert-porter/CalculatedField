@@ -9,34 +9,34 @@ namespace MiniLanguage
     class Environment
     {
         public Environment Parent;
-        Dictionary<String, Value> Identifiers;
+        Dictionary<String, int> Locations;
 
         public Environment()
         {
-            Identifiers = new Dictionary<string, Value>();
+            Locations = new Dictionary<string, int>();
         }
 
-        public Value GetVar(String identifier)
+        public int GetLocation(String identifier)
         {
-            Value value;
-            if (Identifiers.TryGetValue(identifier, out value))
-                return value;
+            int location;
+            if (Locations.TryGetValue(identifier, out location))
+                return location;
             else if(Parent != null)
-                return Parent.GetVar(identifier);
+                return Parent.GetLocation(identifier);
             else 
                 throw new Exception("Identifier not found");
         }
 
-        public bool SetVar(String identifier, Value value)
+        public bool SetLocation(String identifier, int location)
         {
-            if (Identifiers.ContainsKey(identifier))
+            if (Locations.ContainsKey(identifier))
             {
-                Identifiers[identifier] = value;
+                Locations[identifier] = location;
                 return true;
             }
             else if (Parent != null)
             {
-                if (!Parent.SetVar(identifier, value))
+                if (!Parent.SetLocation(identifier, location))
                 {
                     throw new Exception("Identifier not found");
                 }
@@ -47,9 +47,9 @@ namespace MiniLanguage
             return false;
         }
 
-        public void AddVar(String identifier, Value initialValue = null)
+        public void AddLocation(String identifier, int location)
         {
-            Identifiers.Add(identifier, initialValue);
+            Locations.Add(identifier, location);
         }
 
     }

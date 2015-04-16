@@ -10,13 +10,17 @@ namespace MiniLanguage
     {
         Stack<Value> Stack;
         Stack<int> ReturnAddresses;
-        Environment Env;
+        List<Value> Variables;
+        Stack<int> FrameOffsets;
 
         public VirtualMachine()
         {
             Stack = new Stack<Value>();
-            Env = new Environment();
             ReturnAddresses = new Stack<int>();
+
+            FrameOffsets = new Stack<int>();
+            Variables = new List<Value>();
+            FrameOffsets.Push(0);
         }
 
         public void Push(Value value)
@@ -37,48 +41,140 @@ namespace MiniLanguage
         public void PushReturnAddress(int address)
         {
             ReturnAddresses.Push(address);
+            FrameOffsets.Push(Variables.Count);
         }
 
         public int PopReturnAddress()
         {
+            int frameOffset = FrameOffsets.Pop();
+            Variables.RemoveRange(frameOffset, Variables.Count - frameOffset);
             return ReturnAddresses.Pop();
         }
-        public void SetVar(String identifier, Value value)
+
+        public void SetVar(int location, Value value)
         {
-            Env.SetVar(identifier, value);
+            int frameOffset = FrameOffsets.Peek();
+            Variables[location + frameOffset] = value;
         }
-        public Value GetVar(String identifier)
+        public Value GetVar(int location)
         {
-            return Env.GetVar(identifier);
+            return Variables[location + FrameOffsets.Peek()];
+        }
+        public void AddVar(Value value)
+        {
+           // if (location != Variables.Count - FrameOffsets.Peek())
+           // {
+           //     throw new Exception("Variable was created in the wrong location.");
+           // }
+            Variables.Add(value);
         }
 
-        public void AddVar(String identifier, Value value)
-        {
-            Env.AddVar(identifier, value);
-        }
-        public void AddVar(String identifier)
-        {
-            Env.AddVar(identifier);
-        }
-
-        public void PushScope()
-        {
-            Environment newEnv = new Environment();
-            newEnv.Parent = Env;
-            Env = newEnv;
-        }
-        public void PopScope()
-        {
-            Env = Env.Parent;
-        }
-        public void Run(List<Instruction> instructions, int startAddress)
+        public void Run(List<Instruction> instructions, List<Value> Constants, int startAddress)
         {
             int ip = startAddress;
 
             while (ip < instructions.Count)
             {
                 Instruction instruction = instructions[ip];
-                instruction.Execute(this, ref ip);
+                switch (instruction)
+                {
+                    case Instruction.Pop:
+                        {
+                            Pop();
+                            break;
+                        }
+                    case Instruction.Add:
+                        {
+                            Value right = Pop(); ;
+                            Value left = Pop();
+                            Push(new Value(left.DoubleVal + right.DoubleVal));
+                            break;
+                        }
+                    case Instruction.Subtract:
+                        {
+                            Value right = Pop();
+                            Value left = Pop();
+                            Push(new Value(left.DoubleVal - right.DoubleVal));
+                            break;
+                        }
+
+                    case Instruction.Multiply:
+                        {
+                            Value right = Pop();
+                            Value left = Pop();
+                            Push(new Value(left.DoubleVal * right.DoubleVal));
+                            break;
+                        }
+                    case Instruction.Divide:
+                        {
+                            Value right = Pop();
+                            Value left = Pop();
+                            Push(new Value(left.DoubleVal / right.DoubleVal));
+                            break;
+                        }
+                    case Instruction.Less:
+                        {
+                            Value right = Pop();
+                            Value left = Pop();
+                            Push(new Value(left.DoubleVal < right.DoubleVal));
+                            break;
+                        }
+                    case Instruction.LoadNumber:
+                        {
+                            int location = (int)instructions[++ip];
+                            Value number = Constants[location];
+                            Push(number);
+                            break;
+                        }
+                    case Instruction.LoadVariable:
+                        {
+                            int location = (int)instructions[++ip];
+                            Push(GetVar(location));
+                            break;
+                        }
+                    case Instruction.StoreVariable:
+                        {
+                            int location = (int)instructions[++ip];
+                            SetVar(location, Pop());
+                            break;
+                        }
+                    case Instruction.NewVariable:
+                        {
+                            //int location = (int)instructions[++ip];
+                            AddVar(new Value());
+                            break;
+                        }
+                    case Instruction.JumpOnFalse:
+                        {
+                            int jumpLocation = (int)instructions[++ip];
+                            Value bVal = Pop();
+                            // -1 since the instruction pointer will be incremented after the instruction is executed.
+                            if (!bVal.BoolVal)
+                                ip = (int)jumpLocation - 1;
+                            break;
+                        }
+                    case Instruction.Call:
+                        {
+                            int jumpLocation = (int)instructions[++ip];
+                            PushReturnAddress(ip);
+                            // -1 since the instruction pointer will be incremented after the instruction is executed.
+                            ip = jumpLocation - 1;
+                            break;
+                        }
+                    case Instruction.Return:
+                        {
+                            int address = PopReturnAddress();
+                            ip = address;
+                            break;
+                        }
+                    case Instruction.Jump:
+                        {
+                            int jumpLocation = (int)instructions[++ip];
+                            // -1 since the instruction pointer will be incremented after the instruction is executed.
+                            ip = jumpLocation - 1;
+                            break;
+                        }
+                }
                 ip++;
             }
         }
