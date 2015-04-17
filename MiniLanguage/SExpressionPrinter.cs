@@ -56,6 +56,15 @@ namespace MiniLanguage
             expressionStatement.Accept(this);
         }
 
+        public override void Visit(ArrayIndexExpression arrayIndexExpression)
+        {
+            Write("(array ");
+            Write(arrayIndexExpression.Name);
+            Write(" ");
+            arrayIndexExpression.Accept(this);
+            Write(")");
+        }
+
         public override void Visit(IdentifierExpression identifier)
         {
             Write(identifier.Name);
@@ -125,7 +134,7 @@ namespace MiniLanguage
         }
 
 
-        public override void Visit(AssignmentStatement assignmentStatement)
+        public override void Visit(AssignmentExpression assignmentStatement)
         {
             Write("(set! ");
             assignmentStatement.Left.Accept(this);

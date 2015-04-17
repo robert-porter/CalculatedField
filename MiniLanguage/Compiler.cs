@@ -45,6 +45,7 @@ namespace MiniLanguage
             PushScope();
         }
 
+
         public void Compile(ProgramNode program)
         {
             program.Accept(this);
@@ -60,7 +61,6 @@ namespace MiniLanguage
 
         public override void Visit(ProgramNode program)
         {
-
             foreach (FunctionDeclarationStatement funcDecl in program.FunctionDeclarations)
             {
                 funcDecl.Accept(this);
@@ -176,6 +176,13 @@ namespace MiniLanguage
             Instructions.Add((Instruction)VariableLocations.GetLocation(identifier.Name));
         }
 
+        public override void Visit(ArrayIndexExpression arrayIndexExpression)
+        {
+            arrayIndexExpression.IndexExpression.Accept(this);
+            Instructions.Add(Instruction.LoadOffsetVariable);
+            Instructions.Add((Instruction)VariableLocations.GetLocation(arrayIndexExpression.Name));
+        }
+
         public override void Visit(IfStatement ifStatement)
         {
             int jumpPastElseArgLocation = 0;
@@ -218,13 +225,32 @@ namespace MiniLanguage
             Instructions.Add(Instruction.Pop);
         }
 
-        public override void Visit(AssignmentStatement assignmentStatement)
+        public override void Visit(AssignmentExpression assignmentStatement)
         {
             if(assignmentStatement.Right != null)
             {
                 assignmentStatement.Right.Accept(this);
-                Instructions.Add(Instruction.StoreVariable);
-                Instructions.Add((Instruction) VariableLocations.GetLocation(assignmentStatement.Left.Name));
+
+
+                if (assignmentStatement.Left is ArrayIndexExpression)
+                {
+                    // this is probably not the most effecient way to do this...
+                    ArrayIndexExpression arrayIndexExpression = assignmentStatement.Left as ArrayIndexExpression;
+                    arrayIndexExpression.IndexExpression.Accept(this);
+                    Instructions.Add(Instruction.Dup); // duplicate this since it's needed to put the result back on the stack
+                    Instructions.Add(Instruction.StoreOffsetVariable);
+                    Instructions.Add((Instruction)VariableLocations.GetLocation(assignmentStatement.Left.Name));
+                    Instructions.Add(Instruction.LoadOffsetVariable);
+                    Instructions.Add((Instruction)VariableLocations.GetLocation(assignmentStatement.Left.Name));
+                    
+                }
+                else
+                {
+                    Instructions.Add(Instruction.StoreVariable);
+                    Instructions.Add((Instruction)VariableLocations.GetLocation(assignmentStatement.Left.Name));
+                    Instructions.Add(Instruction.LoadVariable);
+                    Instructions.Add((Instruction)VariableLocations.GetLocation(assignmentStatement.Left.Name));
+                }
             }
         }
 
@@ -232,17 +258,24 @@ namespace MiniLanguage
         {
             VariableLocations.AddLocation(varDeclStatement.Identifier, NextVariableLocation);
 
-            Instructions.Add(Instruction.NewVariable);
-
-            if (varDeclStatement.InitialValue != null)
+            if (varDeclStatement.IsArray)
             {
-                varDeclStatement.InitialValue.Accept(this);
-
-                Instructions.Add(Instruction.StoreVariable);
-                Instructions.Add((Instruction) NextVariableLocation);
+                Instructions.Add(Instruction.NewArray);
+                Instructions.Add((Instruction)varDeclStatement.ArraySize);
+                NextVariableLocation += varDeclStatement.ArraySize;
             }
+            else
+            {
+                Instructions.Add(Instruction.NewVariable);
+                if (varDeclStatement.InitialValue != null)
+                {
+                    varDeclStatement.InitialValue.Accept(this);
 
-            NextVariableLocation++;
+                    Instructions.Add(Instruction.StoreVariable);
+                    Instructions.Add((Instruction)NextVariableLocation);
+                }
+                NextVariableLocation++;
+            }
         }
 
         public override void Visit(FunctionDeclarationStatement funcDeclStatement)

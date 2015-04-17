@@ -89,6 +89,14 @@ namespace MiniLanguage
                 throw new Exception("undeclared identifier");
 
         }
+
+        public override void Visit(ArrayIndexExpression arrayIndexExpression)
+        {
+            if (!CheckDeclared(arrayIndexExpression.Name))
+                throw new Exception("undeclared identifier");
+            arrayIndexExpression.IndexExpression.Accept(this);
+
+        }
         public override void Visit(NumberExpression number) 
         { 
             // always a leaf
@@ -106,7 +114,7 @@ namespace MiniLanguage
         {
             unaryExpression.Argument.Accept(this);
         }
-        public override void Visit(AssignmentStatement assignmentStatement) 
+        public override void Visit(AssignmentExpression assignmentStatement) 
         {
             if (!CheckDeclared(assignmentStatement.Left.Name))
                 throw new Exception("undeclared identifier");
@@ -120,7 +128,8 @@ namespace MiniLanguage
                 throw new Exception("variable already declared");
 
             AddIdentifier(varDeclStatement.Identifier);
-            varDeclStatement.InitialValue.Accept(this);
+            if(varDeclStatement.InitialValue != null)
+                varDeclStatement.InitialValue.Accept(this);
         }
         public override void Visit(BlockStatement blockStatement) 
         {
@@ -183,7 +192,7 @@ namespace MiniLanguage
         }
         public override void Visit(ExpressionStatement expressionStatement) 
         {
-            expressionStatement.Accept(this); 
+            expressionStatement.Expression.Accept(this); 
         }
         public override void Visit(ReturnStatement returnStatement) 
         {

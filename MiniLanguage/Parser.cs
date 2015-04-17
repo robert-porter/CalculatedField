@@ -119,6 +119,10 @@ namespace MiniLanguage
                     Expect(TokenType.CloseParen);
                     factor = callExpression;
                 }
+                else if(Peek(TokenType.OpenSquareBracket))
+                {
+
+                }
                 else 
                     factor = new IdentifierExpression(Read().Contents);
             }
@@ -306,7 +310,37 @@ namespace MiniLanguage
 
         Expression ParseExpression()
         {
-            return ParseOr();
+            if (Peek(TokenType.Identifier) && Peek(TokenType.Equal, 1))
+            {
+                IdentifierExpression identifier = new IdentifierExpression(Read().Contents);
+
+                AssignmentExpression assignmentExpression = new AssignmentExpression();
+                assignmentExpression.Left = identifier;
+                Expect(TokenType.Equal);
+                assignmentExpression.Right = ParseExpression();
+
+                return assignmentExpression;
+            }
+
+            else if (Peek(TokenType.Identifier) && Peek(TokenType.OpenSquareBracket, 1))
+            {
+                String identifier = Read().Contents;
+                Read();
+                ArrayIndexExpression indexExpression = new ArrayIndexExpression(identifier, ParseExpression());
+                Expect(TokenType.CloseSquareBracket);
+                if (Accept(TokenType.Equal))
+                {
+                    AssignmentExpression assignmentExpression = new AssignmentExpression();
+                    assignmentExpression.Left = indexExpression;
+                    assignmentExpression.Right = ParseExpression();
+
+                    return assignmentExpression;
+                }
+                else
+                    return indexExpression;
+            }
+            else 
+                return ParseOr();
         }
 
         List<IdentifierExpression> ParseFunctionDeclarationArguments()
@@ -370,29 +404,16 @@ namespace MiniLanguage
 
         Statement ParseStatement()
         {
-            if (Peek(TokenType.Identifier) && Peek(TokenType.Equal, 1))
-            {
-                IdentifierExpression identifier = new IdentifierExpression(Read().Contents);
-
-                AssignmentStatement assignmentStatement = new AssignmentStatement();
-                assignmentStatement.Left = identifier;
-                Expect(TokenType.Equal);
-                assignmentStatement.Right = ParseExpression();
-
-                Expect(TokenType.Semicolon);
-
-                return assignmentStatement;
-            }
-            else if (Accept(TokenType.OpenBrace))
+            if (Accept(TokenType.OpenCurlyBrace))
             {
                 BlockStatement blockStatement = new BlockStatement();
-                while (!Peek(TokenType.CloseBrace))
+                while (!Peek(TokenType.CloseCurlyBrace))
                 {
                     Statement statement = ParseStatement();
                     blockStatement.Statements.Add(statement);
                 }
 
-                Expect(TokenType.CloseBrace);
+                Expect(TokenType.CloseCurlyBrace);
                 return blockStatement;
             }
             else if (Accept(TokenType.If))
@@ -420,21 +441,9 @@ namespace MiniLanguage
 
                 return whileStatement;
             }
-            else if (Accept(TokenType.Var))
+            else if (Peek(TokenType.Var))
             {
-                VarDeclarationStatement varDeclStatement = new VarDeclarationStatement();
-                if (!Peek(TokenType.Identifier))
-                    Error("identifier expected");
-                varDeclStatement.Identifier = Read().Contents;
-
-                if (Peek(TokenType.Equal))
-                {
-                    Read();
-                    varDeclStatement.InitialValue = ParseExpression();
-                }
-                Expect(TokenType.Semicolon);
-
-                return varDeclStatement;
+                return ParseValDeclarationStatment();
             }
             else if (Accept(TokenType.Function))
             {
@@ -447,14 +456,14 @@ namespace MiniLanguage
 
                 funcDecl.Arguments = ParseFunctionDeclarationArguments();
                 Expect(TokenType.CloseParen);
-                Expect(TokenType.OpenBrace);
-                while (!Peek(TokenType.CloseBrace))
+                Expect(TokenType.OpenCurlyBrace);
+                while (!Peek(TokenType.CloseCurlyBrace))
                 {
                     Statement statement = ParseStatement();
                     funcDecl.Body.Statements.Add(statement);
                 }
 
-                Expect(TokenType.CloseBrace);
+                Expect(TokenType.CloseCurlyBrace);
 
                 return funcDecl;
 
@@ -476,27 +485,47 @@ namespace MiniLanguage
             return null;
         }
 
+        public VarDeclarationStatement ParseValDeclarationStatment()
+        {
+            if (!Accept(TokenType.Var))
+                return null;
+
+            VarDeclarationStatement varDeclStatement = new VarDeclarationStatement();
+            if (!Peek(TokenType.Identifier))
+                Error("identifier expected");
+            varDeclStatement.Identifier = Read().Contents;
+
+            if (Accept(TokenType.OpenSquareBracket))
+            {
+                if (!Peek(TokenType.Number))
+                {
+                    Error("Array size expected");
+                }
+                int arraySize = int.Parse(Read().Contents);
+                Expect(TokenType.CloseSquareBracket);
+                varDeclStatement.IsArray = true;
+                varDeclStatement.ArraySize = arraySize;
+            }
+
+            if (Peek(TokenType.Equal))
+            {
+                Read();
+                varDeclStatement.InitialValue = ParseExpression();
+            }
+            Expect(TokenType.Semicolon);
+
+            return varDeclStatement;
+        }
+
         public ProgramNode ParseProgram()
         {
             ProgramNode program = new ProgramNode();
 
             while (Index < Tokens.Count)
             {
-                if (Accept(TokenType.Var))
+                if (Peek(TokenType.Var))
                 {
-                    VarDeclarationStatement varDeclStatement = new VarDeclarationStatement();
-                    if (!Peek(TokenType.Identifier))
-                        Error("identifier expected");
-                    varDeclStatement.Identifier = Read().Contents;
-
-                    if (Peek(TokenType.Equal))
-                    {
-                        Read();
-                        varDeclStatement.InitialValue = ParseExpression();
-                    }
-                    Expect(TokenType.Semicolon);
-
-                    program.VariableDeclarations.Add(varDeclStatement);
+                    program.VariableDeclarations.Add(ParseValDeclarationStatment());
                 }
 
                 else if (Accept(TokenType.Function))
@@ -510,14 +539,14 @@ namespace MiniLanguage
 
                     funcDecl.Arguments = ParseFunctionDeclarationArguments();
                     Expect(TokenType.CloseParen);
-                    Expect(TokenType.OpenBrace);
-                    while (!Peek(TokenType.CloseBrace))
+                    Expect(TokenType.OpenCurlyBrace);
+                    while (!Peek(TokenType.CloseCurlyBrace))
                     {
                         Statement statement = ParseStatement();
                         funcDecl.Body.Statements.Add(statement);
                     }
 
-                    Expect(TokenType.CloseBrace);
+                    Expect(TokenType.CloseCurlyBrace);
 
                     program.FunctionDeclarations.Add(funcDecl);
                 }

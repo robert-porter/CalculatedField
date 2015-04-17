@@ -10,7 +10,8 @@ namespace MiniLanguage
 
     enum Instruction : int
     {
-        Pop,
+        Pop = 100,
+        Dup,
         Add,
         Subtract,
         Multiply,
@@ -29,8 +30,11 @@ namespace MiniLanguage
         LoadFalse,
         LoadNumber,
         LoadVariable,
+        LoadOffsetVariable,
         StoreVariable,
+        StoreOffsetVariable,
         NewVariable,
+        NewArray,
         JumpOnFalse,
         Call,
         Return,

@@ -13,18 +13,19 @@ namespace MiniLanguage
             Lexer lexer = new Lexer(
 @"
 
-function f(x) { 
-    var b = true;
-    if(b && false) {
-        return 1; 
+function f(x) {
+    var y[20];
+    var i = 0;
+    while(i < 5)
+    {
+        y[i] = i;
+        i = i + 1;
     }
 
-    if(b || true)
-        return 10;
-
-    return 5;
+    return y[3];
 }
 var x=f(1+34);
+
 "
                 );
 

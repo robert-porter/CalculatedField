@@ -62,11 +62,12 @@ namespace MiniLanguage
         }
         public void AddVar(Value value)
         {
-            // if (location != Variables.Count - FrameOffsets.Peek())
-            // {
-            //     throw new Exception("Variable was created in the wrong location.");
-            // }
             Variables.Add(value);
+        }
+        public void AddArray(int size)
+        {
+            for (int i = 0; i < size; i++) // change this...
+                Variables.Add(new Value());
         }
 
         public void Run(List<Instruction> instructions, List<Value> Constants, int startAddress)
@@ -81,6 +82,12 @@ namespace MiniLanguage
                     case Instruction.Pop:
                         {
                             Pop();
+                            break;
+                        }
+                    case Instruction.Dup:
+                        {
+                            Value value = Peek();
+                            Push(value);
                             break;
                         }
                     case Instruction.Add:
@@ -203,16 +210,36 @@ namespace MiniLanguage
                             Push(GetVar(location));
                             break;
                         }
+                    case Instruction.LoadOffsetVariable:
+                        {
+                            int location = (int)instructions[++ip];
+                            int offset = (int) Pop().DoubleVal;
+                            Push(GetVar(location + offset));
+                            break;
+                        }
                     case Instruction.StoreVariable:
                         {
                             int location = (int)instructions[++ip];
                             SetVar(location, Pop());
                             break;
                         }
+                    case Instruction.StoreOffsetVariable:
+                        {
+                            int location = (int)instructions[++ip];
+                            int offset = (int)Pop().DoubleVal;
+                            SetVar(location + offset, Pop());
+                            break;
+                        }
                     case Instruction.NewVariable:
                         {
                             //int location = (int)instructions[++ip];
                             AddVar(new Value());
+                            break;
+                        }
+                    case Instruction.NewArray:
+                        {
+                            int size = (int)instructions[++ip];
+                            AddArray(size);
                             break;
                         }
                     case Instruction.JumpOnFalse:

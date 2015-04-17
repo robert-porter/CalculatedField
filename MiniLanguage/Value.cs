@@ -11,6 +11,13 @@ namespace MiniLanguage
     [StructLayout(LayoutKind.Explicit)]
     struct Value
     {
+        enum ValueType
+        {
+            Number, 
+            True,
+            False,
+            Array
+        }
 
         public Value(double d) : this()
         {
@@ -29,5 +36,8 @@ namespace MiniLanguage
         List<Value> ArrayVal;
         [FieldOffset(8)]
         String StringVal;
+
+        [FieldOffset(16)]
+        ValueType Type;
     }
 }

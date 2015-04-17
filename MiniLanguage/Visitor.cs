@@ -13,7 +13,7 @@ namespace MiniLanguage
         public abstract void Visit(BoolExpression expression);
         public virtual void Visit(BinaryExpression binaryExpression) { }
         public virtual void Visit(UnaryExpression unaryExpression) { }
-        public virtual void Visit(AssignmentStatement assignmentStatement) { }
+        public virtual void Visit(AssignmentExpression assignmentStatement) { }
         public virtual void Visit(VarDeclarationStatement varDeclStatement) { }
         public virtual void Visit(BlockStatement blockStatement) { }
         public virtual void Visit(IfStatement ifStatement) { }
@@ -23,5 +23,6 @@ namespace MiniLanguage
         public virtual void Visit(ExpressionStatement expressionStatement) { }
         public virtual void Visit(ReturnStatement returnStatement) { }
         public abstract void Visit(ProgramNode program);
+        public virtual void Visit(ArrayIndexExpression arrayIndexExpression) { }
     }
 }

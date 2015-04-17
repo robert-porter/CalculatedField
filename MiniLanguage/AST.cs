@@ -48,6 +48,19 @@ namespace MiniLanguage
         }
     }
 
+    class ArrayIndexExpression : IdentifierExpression
+    {
+        public Expression IndexExpression;
+        public ArrayIndexExpression(String identifier, Expression indexExpression) : base(identifier)
+        {
+            IndexExpression = indexExpression;
+        }
+
+        public override void Accept(Visitor visitor)
+        {
+            visitor.Visit(this);
+        }
+    }
     class NumberExpression : Expression
     {
         public NumberExpression(String value)
@@ -175,7 +188,7 @@ namespace MiniLanguage
     }
 
 
-    class AssignmentStatement : Statement
+    class AssignmentExpression : Expression
     {
         public IdentifierExpression Left { get; set; }
         public Expression Right { get; set; }
@@ -192,6 +205,8 @@ namespace MiniLanguage
     {
         public String Identifier { get; set; }
         public Expression InitialValue { get; set; }
+        public bool IsArray;
+        public int ArraySize;
 
         public override void Accept(Visitor visitor)
         {
