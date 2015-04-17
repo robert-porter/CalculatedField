@@ -10,6 +10,7 @@ namespace MiniLanguage
     {
         public virtual void Visit(IdentifierExpression identifier) { }
         public virtual void Visit(NumberExpression number) { }
+        public abstract void Visit(BoolExpression expression);
         public virtual void Visit(BinaryExpression binaryExpression) { }
         public virtual void Visit(UnaryExpression unaryExpression) { }
         public virtual void Visit(AssignmentStatement assignmentStatement) { }

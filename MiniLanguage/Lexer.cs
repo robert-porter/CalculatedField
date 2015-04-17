@@ -29,11 +29,15 @@ namespace MiniLanguage
         Semicolon,
         OpenBrace,
         CloseBrace,
+        OpenBracket,
+        CloseBracket,
         Comma,
         Number,
         If,
         Else,
         While,
+        True,
+        False,
         Var,
         Return,
         Function,
@@ -86,6 +90,8 @@ namespace MiniLanguage
                 {",", TokenType.Comma},
                 {"{", TokenType.OpenBrace},
                 {"}", TokenType.CloseBrace},
+                {"[", TokenType.OpenBracket},
+                {"]", TokenType.CloseBrace},
                 {"!", TokenType.Bang},
                 {"&&", TokenType.And},
                 {"||", TokenType.Or},
@@ -94,6 +100,8 @@ namespace MiniLanguage
 
             Keywords = new Dictionary<string, TokenType>
             {
+                {"true", TokenType.True},
+                {"false", TokenType.False},
                 {"if", TokenType.If},
                 {"else", TokenType.Else},
                 {"while", TokenType.While},

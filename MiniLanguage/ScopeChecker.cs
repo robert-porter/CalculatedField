@@ -93,6 +93,10 @@ namespace MiniLanguage
         { 
             // always a leaf
         }
+        public override void Visit(BoolExpression expression)
+        {
+            // always a leaf
+        }
         public override void Visit(BinaryExpression binaryExpression) 
         {
             binaryExpression.Left.Accept(this);

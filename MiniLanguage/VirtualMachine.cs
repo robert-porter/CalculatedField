@@ -62,10 +62,10 @@ namespace MiniLanguage
         }
         public void AddVar(Value value)
         {
-           // if (location != Variables.Count - FrameOffsets.Peek())
-           // {
-           //     throw new Exception("Variable was created in the wrong location.");
-           // }
+            // if (location != Variables.Count - FrameOffsets.Peek())
+            // {
+            //     throw new Exception("Variable was created in the wrong location.");
+            // }
             Variables.Add(value);
         }
 
@@ -112,11 +112,82 @@ namespace MiniLanguage
                             Push(new Value(left.DoubleVal / right.DoubleVal));
                             break;
                         }
+                    case Instruction.Negate:
+                        {
+                            Value value = Pop();
+                            Push(new Value(-value.DoubleVal));
+                            break;
+                        }
                     case Instruction.Less:
                         {
                             Value right = Pop();
                             Value left = Pop();
                             Push(new Value(left.DoubleVal < right.DoubleVal));
+                            break;
+                        }
+                    case Instruction.LessOrEqual:
+                        {
+                            Value right = Pop();
+                            Value left = Pop();
+                            Push(new Value(left.DoubleVal <= right.DoubleVal));
+                            break;
+                        }
+                    case Instruction.Greater:
+                        {
+                            Value right = Pop();
+                            Value left = Pop();
+                            Push(new Value(left.DoubleVal > right.DoubleVal));
+                            break;
+                        }
+                    case Instruction.GreaterOrEqual:
+                        {
+                            Value right = Pop();
+                            Value left = Pop();
+                            Push(new Value(left.DoubleVal >= right.DoubleVal));
+                            break;
+                        }
+                    case Instruction.DoubleEqual: 
+                        {
+                            Value right = Pop();
+                            Value left = Pop();
+                            Push(new Value(left.DoubleVal == right.DoubleVal));
+                            break;
+                        }
+                    case Instruction.NotEqual:
+                        {
+                            Value right = Pop();
+                            Value left = Pop();
+                            Push(new Value(left.DoubleVal == right.DoubleVal));
+                            break;
+                        }
+                    case Instruction.And:
+                        {
+                            Value right = Pop();
+                            Value left = Pop();
+                            Push(new Value(left.BoolVal && right.BoolVal));
+                            break;
+                        }
+                    case Instruction.Or:
+                        {
+                            Value right = Pop();
+                            Value left = Pop();
+                            Push(new Value(left.BoolVal || right.BoolVal));
+                            break;
+                        }
+                    case Instruction.Not:
+                        {
+                            Value value = Pop();
+                            Push(new Value(!value.BoolVal));
+                            break;
+                        }
+                    case Instruction.LoadTrue:
+                        {
+                            Push(new Value(true));
+                            break;
+                        }
+                    case Instruction.LoadFalse:
+                        {
+                            Push(new Value(false));
                             break;
                         }
                     case Instruction.LoadNumber:

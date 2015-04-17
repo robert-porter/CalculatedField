@@ -63,6 +63,21 @@ namespace MiniLanguage
         }
     }
 
+    class BoolExpression : Expression
+    {
+        public bool Value;
+
+        public BoolExpression(bool b)
+        {
+            Value = b;
+        }
+
+        public override void Accept(Visitor visitor)
+        {
+            visitor.Visit(this);
+        }
+    }
+
     class BinaryExpression : Expression
     {
         public BinaryExpression()

@@ -13,16 +13,18 @@ namespace MiniLanguage
             Lexer lexer = new Lexer(
 @"
 
-var q = f(1);
-
 function f(x) { 
-    var z = 34;
-    if(x < 2) 
-        return z;
-    else 
-        return 1;
-}
+    var b = true;
+    if(b && false) {
+        return 1; 
+    }
 
+    if(b || true)
+        return 10;
+
+    return 5;
+}
+var x=f(1+34);
 "
                 );
 

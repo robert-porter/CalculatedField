@@ -90,6 +90,24 @@ namespace MiniLanguage
 
         Expression ParseFactor()
         {
+            Expression factor = null;
+            UnaryExpression unaryExpression = null;
+            if (Peek(TokenType.Plus))
+            {
+                unaryExpression = new UnaryExpression(UnaryExpression.Operator.Plus);
+                Read();
+            }
+            else if (Peek(TokenType.Minus))
+            {
+                unaryExpression = new UnaryExpression(UnaryExpression.Operator.Minus);
+                Read();
+            }
+            else if (Peek(TokenType.Bang))
+            {
+                unaryExpression = new UnaryExpression(UnaryExpression.Operator.Not);
+                Read();
+            }
+
             if (Peek(TokenType.Identifier))
             {
                 if (Peek(TokenType.OpenParen, 1))
@@ -99,28 +117,42 @@ namespace MiniLanguage
                     Read();
                     callExpression.Arguments = ParseFunctionCallArguments();
                     Expect(TokenType.CloseParen);
-                    return callExpression;
+                    factor = callExpression;
                 }
                 else 
-                    return new IdentifierExpression(Read().Contents);
+                    factor = new IdentifierExpression(Read().Contents);
             }
             else if (Peek(TokenType.Number))
             {
-                return new NumberExpression(Read().Contents);
+                factor = new NumberExpression(Read().Contents);
             }
             else if (Accept(TokenType.OpenParen))
             {
                 Expression e = ParseExpression();
                 Expect(TokenType.CloseParen);
 
-                return e;
+                factor = e;
+            }
+            else if(Accept(TokenType.True))
+            {
+                factor = new BoolExpression(true);
+            }
+            else if(Accept(TokenType.False))
+            {
+                factor = new BoolExpression(false);
             }
             else
             {
                 Error("factor: syntax error");
             }
 
-            return null;
+            if (unaryExpression != null)
+            {
+                unaryExpression.Argument = factor;
+                return unaryExpression;
+            }
+            else
+                return factor;
         }
 
         Expression ParseTerm()
@@ -162,25 +194,9 @@ namespace MiniLanguage
 
         Expression ParseArithmeticExpression()
         {
-            UnaryExpression unaryExpression = null;
+
             BinaryExpression rootBinaryExpression = new BinaryExpression();
             BinaryExpression binaryExpression = rootBinaryExpression;
-
-            if (Peek(TokenType.Plus))
-            {
-                unaryExpression = new UnaryExpression(UnaryExpression.Operator.Plus);
-                Read();
-            }
-            else if (Peek(TokenType.Minus))
-            {
-                unaryExpression = new UnaryExpression(UnaryExpression.Operator.Minus);
-                Read();
-            }
-            else if (Peek(TokenType.Bang))
-            {
-                unaryExpression = new UnaryExpression(UnaryExpression.Operator.Not);
-                Read();
-            }
 
             rootBinaryExpression.Left = ParseTerm();
 
@@ -215,16 +231,10 @@ namespace MiniLanguage
                 expression = rootBinaryExpression.Left;
             else expression = rootBinaryExpression;
 
-            if (unaryExpression != null)
-            {
-                unaryExpression.Argument = expression;
-                return unaryExpression;
-            }
-
             return expression;
         }
 
-        // put == and != before this
+        // put == and != before this?
         Expression ParseConditionalExpression()
         {
 

@@ -72,14 +72,38 @@ namespace MiniLanguage
             }
 
         } 
+
         public override void Visit(UnaryExpression unaryExpression)
         {
-            throw new NotImplementedException();
+            unaryExpression.Argument.Accept(this);
+
+            switch(unaryExpression.Op)
+            {
+                case UnaryExpression.Operator.Plus: // do nothing
+                    break;
+                case UnaryExpression.Operator.Minus:
+                    Instructions.Add(Instruction.Negate);
+                    break;
+                case UnaryExpression.Operator.Not:
+                    Instructions.Add(Instruction.Not);
+                    break;
+            }
         }
         
         public override void Visit(WhileStatement whileStatement)
         {
-            throw new NotImplementedException();
+            int conditionLocation = Instructions.Count;
+            int jumpArgLocation = 0;
+            whileStatement.Condition.Accept(this);  // leaves the result on the stack
+            Instructions.Add(Instruction.JumpOnFalse);
+            // keep track of argument location, it will be set after the body is compiled
+            jumpArgLocation = Instructions.Count; 
+            Instructions.Add((Instruction)0); // just allocating the spot
+
+            whileStatement.Body.Accept(this);
+            Instructions.Add(Instruction.Jump);
+            Instructions.Add((Instruction)conditionLocation);
+            Instructions[jumpArgLocation] = (Instruction) Instructions.Count;
         }
 
   
@@ -103,6 +127,28 @@ namespace MiniLanguage
                 case BinaryExpression.Operator.Less:
                     Instructions.Add(Instruction.Less);
                     break;
+                case BinaryExpression.Operator.LessOrEqual:
+                    Instructions.Add(Instruction.LessOrEqual);
+                    break;
+                case BinaryExpression.Operator.Greater:
+                    Instructions.Add(Instruction.Greater);
+                    break;
+                case BinaryExpression.Operator.GreaterOrEqual:
+                    Instructions.Add(Instruction.GreaterOrEqual);
+                    break;
+                case BinaryExpression.Operator.DoubleEqual:
+                    Instructions.Add(Instruction.DoubleEqual);
+                    break;
+                case BinaryExpression.Operator.NotEqual:
+                    Instructions.Add(Instruction.NotEqual);
+                    break;
+                case BinaryExpression.Operator.And:
+                    Instructions.Add(Instruction.And);
+                    break;
+                case BinaryExpression.Operator.Or:
+                    Instructions.Add(Instruction.Or);
+                    break;
+
             }
         }
 
@@ -112,6 +158,15 @@ namespace MiniLanguage
             Constants.Add(new Value(value));
             Instructions.Add(Instruction.LoadNumber);
             Instructions.Add((Instruction)Constants.Count - 1);
+
+        }
+
+        public override void Visit(BoolExpression boolExpression)
+        {
+            if (boolExpression.Value)
+                Instructions.Add(Instruction.LoadTrue);
+            else
+                Instructions.Add(Instruction.LoadFalse);
 
         }
 

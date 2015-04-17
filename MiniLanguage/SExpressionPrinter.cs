@@ -65,6 +65,13 @@ namespace MiniLanguage
         {
             Write(number.Value);
         }
+        public override void Visit(BoolExpression expression)
+        {
+            if (expression.Value)
+                Write("true");
+            else
+                Write("false");
+        }
 
         public override void Visit(BinaryExpression binaryExpression)
         {

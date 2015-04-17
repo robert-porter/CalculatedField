@@ -5,31 +5,29 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace MiniLanguage
 {
-    
+    [StructLayout(LayoutKind.Explicit)]
     struct Value
     {
-        public Value(double d)
+
+        public Value(double d) : this()
         {
             DoubleVal = d;
-            StringVal = "";
-            BoolVal = false;
         }
-        public Value(String s)
-        {
-            StringVal = s;
-            DoubleVal = 0;
-            BoolVal = false;
-        }
-        public Value(bool b) 
+        public Value(bool b)  : this()
         {
             BoolVal = b;
-            DoubleVal = 0;
-            StringVal = "";
         } 
+        [FieldOffset(0)]
         public double DoubleVal;
-        public String StringVal;
+        [FieldOffset(0)]
         public bool BoolVal;
+
+        [FieldOffset(8)]
+        List<Value> ArrayVal;
+        [FieldOffset(8)]
+        String StringVal;
     }
 }
