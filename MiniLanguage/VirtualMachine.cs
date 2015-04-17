@@ -157,7 +157,7 @@ namespace MiniLanguage
                         {
                             Value right = Pop();
                             Value left = Pop();
-                            Push(new Value(left.DoubleVal == right.DoubleVal));
+                            Push(new Value(left.DoubleVal != right.DoubleVal));
                             break;
                         }
                     case Instruction.And:
