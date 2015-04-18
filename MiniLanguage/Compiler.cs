@@ -42,14 +42,12 @@ namespace MiniLanguage
             Constants.Add(new Value(0.0f));
             VariableLocations = new Environment();
             CallArguments = new List<Tuple<string, int>>();
-            PushScope();
         }
 
 
         public void Compile(ProgramNode program)
         {
             program.Accept(this);
-
 
             // convert function names to function locations.
             foreach (Tuple<String, int> callArg in CallArguments)
@@ -61,11 +59,28 @@ namespace MiniLanguage
 
         public override void Visit(ProgramNode program)
         {
+            foreach (VarDeclarationStatement varDecl in program.VariableDeclarations)
+            {
+                // -(1+ is a hack to identify globals...
+                VariableLocations.AddLocation(varDecl.Identifier, -(1 + NextVariableLocation++));
+            }
             foreach (FunctionDeclarationStatement funcDecl in program.FunctionDeclarations)
             {
                 funcDecl.Accept(this);
             }
-
+            foreach (VarDeclarationStatement varDecl in program.VariableDeclarations)
+            {
+                if (varDecl.IsArray)
+                {
+                    Instructions.Add(Instruction.NewArray);
+                    Instructions.Add((Instruction)varDecl.ArraySize);
+                    NextVariableLocation += varDecl.ArraySize;
+                }
+                else
+                {
+                    Instructions.Add(Instruction.NewVariable);
+                }
+            }
             foreach (VarDeclarationStatement varDecl in program.VariableDeclarations)
             {
                 varDecl.Accept(this);
@@ -137,7 +152,7 @@ namespace MiniLanguage
                     Instructions.Add(Instruction.GreaterOrEqual);
                     break;
                 case BinaryExpression.Operator.DoubleEqual:
-                    Instructions.Add(Instruction.DoubleEqual);
+                    Instructions.Add(Instruction.Equal);
                     break;
                 case BinaryExpression.Operator.NotEqual:
                     Instructions.Add(Instruction.NotEqual);
@@ -156,7 +171,7 @@ namespace MiniLanguage
         {
             double value = double.Parse(number.Value);
             Constants.Add(new Value(value));
-            Instructions.Add(Instruction.LoadNumber);
+            Instructions.Add(Instruction.PushNumber);
             Instructions.Add((Instruction)Constants.Count - 1);
 
         }
@@ -164,22 +179,37 @@ namespace MiniLanguage
         public override void Visit(BoolExpression boolExpression)
         {
             if (boolExpression.Value)
-                Instructions.Add(Instruction.LoadTrue);
+                Instructions.Add(Instruction.PushTrue);
             else
-                Instructions.Add(Instruction.LoadFalse);
+                Instructions.Add(Instruction.PushFalse);
 
+        }
+
+        public override void Visit(StringExpression stringExpression)
+        {
+            Constants.Add(new Value(stringExpression.Value));
+            Instructions.Add(Instruction.PushNumber);
+            Instructions.Add((Instruction)Constants.Count - 1);
         }
 
         public override void Visit(IdentifierExpression identifier)
         {
-            Instructions.Add(Instruction.LoadVariable);
-            Instructions.Add((Instruction)VariableLocations.GetLocation(identifier.Name));
+            if (VariableLocations.ContainsReference(identifier.Name))
+            {
+                Instructions.Add(Instruction.PushReference);
+                Instructions.Add((Instruction)VariableLocations.GetLocation(identifier.Name));
+            }
+            else
+            {
+                Instructions.Add(Instruction.PushVariable);
+                Instructions.Add((Instruction)VariableLocations.GetLocation(identifier.Name));
+            }
         }
 
         public override void Visit(ArrayIndexExpression arrayIndexExpression)
         {
             arrayIndexExpression.IndexExpression.Accept(this);
-            Instructions.Add(Instruction.LoadOffsetVariable);
+            Instructions.Add(Instruction.PushOffsetVariable);
             Instructions.Add((Instruction)VariableLocations.GetLocation(arrayIndexExpression.Name));
         }
 
@@ -237,18 +267,28 @@ namespace MiniLanguage
                     // this is probably not the most effecient way to do this...
                     ArrayIndexExpression arrayIndexExpression = assignmentStatement.Left as ArrayIndexExpression;
                     arrayIndexExpression.IndexExpression.Accept(this);
-                    Instructions.Add(Instruction.Dup); // duplicate this since it's needed to put the result back on the stack
+                    // for a[i] = x, we have on the stack, x,i, then we tuck and have i,x,i
+                    // we store x at offset i and have just i left on the stack 
+                    // then we push the variable at offset i back on the stack.
+                    Instructions.Add(Instruction.Tuck); 
                     Instructions.Add(Instruction.StoreOffsetVariable);
                     Instructions.Add((Instruction)VariableLocations.GetLocation(assignmentStatement.Left.Name));
-                    Instructions.Add(Instruction.LoadOffsetVariable);
+                    Instructions.Add(Instruction.PushOffsetVariable);
                     Instructions.Add((Instruction)VariableLocations.GetLocation(assignmentStatement.Left.Name));
                     
+                }
+                else if (VariableLocations.ContainsReference(assignmentStatement.Left.Name))
+                {
+                    Instructions.Add(Instruction.StoreReference);
+                    Instructions.Add((Instruction)VariableLocations.GetLocation(assignmentStatement.Left.Name));
+                    Instructions.Add(Instruction.PushReference);
+                    Instructions.Add((Instruction)VariableLocations.GetLocation(assignmentStatement.Left.Name));
                 }
                 else
                 {
                     Instructions.Add(Instruction.StoreVariable);
                     Instructions.Add((Instruction)VariableLocations.GetLocation(assignmentStatement.Left.Name));
-                    Instructions.Add(Instruction.LoadVariable);
+                    Instructions.Add(Instruction.PushVariable);
                     Instructions.Add((Instruction)VariableLocations.GetLocation(assignmentStatement.Left.Name));
                 }
             }
@@ -256,51 +296,79 @@ namespace MiniLanguage
 
         public override void Visit(VarDeclarationStatement varDeclStatement)
         {
-            VariableLocations.AddLocation(varDeclStatement.Identifier, NextVariableLocation);
-
-            if (varDeclStatement.IsArray)
+            if (!VariableLocations.IsGlobal()) // globals were already added.
             {
-                Instructions.Add(Instruction.NewArray);
-                Instructions.Add((Instruction)varDeclStatement.ArraySize);
-                NextVariableLocation += varDeclStatement.ArraySize;
+                VariableLocations.AddLocation(varDeclStatement.Identifier, NextVariableLocation++);
+
+                if (varDeclStatement.IsArray)
+                {
+                    Instructions.Add(Instruction.NewArray);
+                    Instructions.Add((Instruction)varDeclStatement.ArraySize);
+                    NextVariableLocation += varDeclStatement.ArraySize;
+                }
+                else
+                {
+                    Instructions.Add(Instruction.NewVariable);
+                    if (varDeclStatement.InitialValue != null)
+                    {
+                        varDeclStatement.InitialValue.Accept(this);
+
+                        Instructions.Add(Instruction.StoreVariable);
+                        Instructions.Add((Instruction)VariableLocations.GetLocation(varDeclStatement.Identifier));
+                    }
+                }
             }
             else
             {
-                Instructions.Add(Instruction.NewVariable);
-                if (varDeclStatement.InitialValue != null)
+                // everything is preallocated for globals.
+                if (!varDeclStatement.IsArray && varDeclStatement.InitialValue != null)
                 {
                     varDeclStatement.InitialValue.Accept(this);
 
                     Instructions.Add(Instruction.StoreVariable);
-                    Instructions.Add((Instruction)NextVariableLocation);
+                    Instructions.Add((Instruction)VariableLocations.GetLocation(varDeclStatement.Identifier));
                 }
-                NextVariableLocation++;
+
             }
+        }
+
+        public override void Visit(RefDeclarationStatement refDeclStatement)
+        {
+            if (!VariableLocations.IsGlobal()) // globals were already added. 
+            {
+                VariableLocations.AddLocation(refDeclStatement.RefIdentifier, NextVariableLocation++);
+                VariableLocations.AddReference(refDeclStatement.RefIdentifier);
+            }
+            Instructions.Add(Instruction.NewReference);
+            Instructions.Add((Instruction)VariableLocations.GetLocation(refDeclStatement.ReferencedVariable.Name));
+                
         }
 
         public override void Visit(FunctionDeclarationStatement funcDeclStatement)
         {
             PushScope();
             NextVariableLocation = 0;
-
+            
             FunctionLocations.Add(funcDeclStatement.Name, Instructions.Count);
 
-            for (int i = funcDeclStatement.Arguments.Count - 1; i >= 0; i-- )
+            if (funcDeclStatement.Arguments != null)
             {
-                Instructions.Add(Instruction.NewVariable);
-                Instructions.Add(Instruction.StoreVariable);
-                Instructions.Add((Instruction)NextVariableLocation);
-                VariableLocations.AddLocation(funcDeclStatement.Arguments[i].Name, NextVariableLocation);
-                NextVariableLocation++;
+                for (int i = funcDeclStatement.Arguments.Count - 1; i >= 0; i--)
+                {
+                    Instructions.Add(Instruction.NewVariable);
+                    Instructions.Add(Instruction.StoreVariable);
+                    Instructions.Add((Instruction)NextVariableLocation);
+                    VariableLocations.AddLocation(funcDeclStatement.Arguments[i].Name, NextVariableLocation);
+                    NextVariableLocation++;
+                }
             }
             funcDeclStatement.Body.Accept(this);
 
             // return 0
-            Instructions.Add(Instruction.LoadNumber);
+            Instructions.Add(Instruction.PushNumber);
             Instructions.Add((Instruction)0);
             Instructions.Add(Instruction.Return);
 
-            NextVariableLocation = 0;
             PopScope();
             
             // since we first generate code for all the global functions, the gloabl code starts after the last global function.
@@ -318,8 +386,6 @@ namespace MiniLanguage
         {
             String name = funcCallExpression.Identifier.Name;
 
-
-            // minus 1 since we will increment the pointer after the call expression is executed.
             foreach (Expression argument in funcCallExpression.Arguments)
             {
                 argument.Accept(this); // this leaves all of the expression results on the stack
@@ -327,8 +393,6 @@ namespace MiniLanguage
             Instructions.Add(Instruction.Call);
             Instructions.Add((Instruction)0); // placeholder for the function location
             CallArguments.Add(new Tuple<string, int>(name, Instructions.Count - 1));
-
-            
         }
     }
 }

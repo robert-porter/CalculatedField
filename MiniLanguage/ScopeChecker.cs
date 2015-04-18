@@ -105,6 +105,11 @@ namespace MiniLanguage
         {
             // always a leaf
         }
+
+        public override void Visit(StringExpression expression)
+        {
+            // always a leaf
+        }
         public override void Visit(BinaryExpression binaryExpression) 
         {
             binaryExpression.Left.Accept(this);
@@ -131,6 +136,18 @@ namespace MiniLanguage
             if(varDeclStatement.InitialValue != null)
                 varDeclStatement.InitialValue.Accept(this);
         }
+
+        public override void Visit(RefDeclarationStatement refDeclStatement)
+        {
+            // declarations are already checked at global scope(Identifiers.Count == 1)
+            if (Identifiers.Count != 1 && ExistInCurrentScope(refDeclStatement.RefIdentifier))
+                throw new Exception("variable already declared");
+
+            AddIdentifier(refDeclStatement.RefIdentifier);
+
+            refDeclStatement.ReferencedVariable.Accept(this);
+        }
+
         public override void Visit(BlockStatement blockStatement) 
         {
             PushScope();
@@ -183,9 +200,12 @@ namespace MiniLanguage
 
             AddIdentifier(funcDeclStatement.Name);
 
-            foreach(IdentifierExpression idExpr in funcDeclStatement.Arguments)
+            if (funcDeclStatement.Arguments != null)
             {
-                funcDeclArguments.Add(idExpr.Name);
+                foreach (IdentifierExpression idExpr in funcDeclStatement.Arguments)
+                {
+                    funcDeclArguments.Add(idExpr.Name);
+                }
             }
 
             funcDeclStatement.Body.Accept(this);

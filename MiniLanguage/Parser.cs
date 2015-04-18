@@ -119,9 +119,14 @@ namespace MiniLanguage
                     Expect(TokenType.CloseParen);
                     factor = callExpression;
                 }
-                else if(Peek(TokenType.OpenSquareBracket))
+                else if(Peek(TokenType.OpenSquareBracket, 1))
                 {
-
+                    String identifier = Read().Contents;
+                    Read();
+                    Expression indexExpression = ParseExpression();
+                    ArrayIndexExpression arrayIndexExpression = new ArrayIndexExpression(identifier, indexExpression);
+                    Expect(TokenType.CloseSquareBracket);
+                    factor = arrayIndexExpression;
                 }
                 else 
                     factor = new IdentifierExpression(Read().Contents);
@@ -144,6 +149,10 @@ namespace MiniLanguage
             else if(Accept(TokenType.False))
             {
                 factor = new BoolExpression(false);
+            }
+            else if (Peek(TokenType.String))
+            {
+                factor = new StringExpression(Read().Contents);
             }
             else
             {
@@ -310,6 +319,8 @@ namespace MiniLanguage
 
         Expression ParseExpression()
         {
+            int oldIndex = Index; // need to backtrack if array indexing but not assignment.
+
             if (Peek(TokenType.Identifier) && Peek(TokenType.Equal, 1))
             {
                 IdentifierExpression identifier = new IdentifierExpression(Read().Contents);
@@ -321,7 +332,6 @@ namespace MiniLanguage
 
                 return assignmentExpression;
             }
-
             else if (Peek(TokenType.Identifier) && Peek(TokenType.OpenSquareBracket, 1))
             {
                 String identifier = Read().Contents;
@@ -337,10 +347,12 @@ namespace MiniLanguage
                     return assignmentExpression;
                 }
                 else
-                    return indexExpression;
+                {
+                    Index = oldIndex;
+                }
             }
-            else 
-                return ParseOr();
+            
+            return ParseOr();
         }
 
         List<IdentifierExpression> ParseFunctionDeclarationArguments()
@@ -444,6 +456,22 @@ namespace MiniLanguage
             else if (Peek(TokenType.Var))
             {
                 return ParseValDeclarationStatment();
+            }
+            else if(Accept(TokenType.Ref))
+            {
+                if(Index + 3 >= Tokens.Count)
+                    throw new Exception("unexpected token");
+                if(!(Peek(TokenType.Identifier) && Peek(TokenType.Equal, 1) && Peek(TokenType.Identifier)))
+                    throw new Exception("unexpected token");
+                
+                RefDeclarationStatement refDeclarationStatement = new RefDeclarationStatement();
+                
+                refDeclarationStatement.RefIdentifier = Read().Contents;
+                Read();
+                refDeclarationStatement.ReferencedVariable = new IdentifierExpression(Read().Contents);
+                Expect(TokenType.Semicolon);
+
+                return refDeclarationStatement;
             }
             else if (Accept(TokenType.Function))
             {

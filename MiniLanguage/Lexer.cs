@@ -32,6 +32,7 @@ namespace MiniLanguage
         OpenSquareBracket,
         CloseSquareBracket,
         Comma,
+        String,
         Number,
         If,
         Else,
@@ -39,6 +40,7 @@ namespace MiniLanguage
         True,
         False,
         Var,
+        Ref,
         Return,
         Function,
         Identifier
@@ -106,6 +108,7 @@ namespace MiniLanguage
                 {"else", TokenType.Else},
                 {"while", TokenType.While},
                 {"var", TokenType.Var},
+                {"ref", TokenType.Ref},
                 {"return", TokenType.Return},
                 {"function", TokenType.Function},
             };
@@ -115,17 +118,54 @@ namespace MiniLanguage
         {
             while (Index < SourceCode.Length)
             {
-                if (!TryLexOperator())
-                    if (!TryConsumeWhitespace())
-                        if (!TryLexNumber())
-                            if (!TryLexWord())
-                            {
-                                System.Console.WriteLine("Unreconized token");
-                                return;
-                            }
+                bool tokenRead = false;
+                tokenRead = TryLexOperator();
+                if (!tokenRead)
+                    tokenRead = TryConsumeWhitespace();
+                if (!tokenRead)
+                    tokenRead = TryLexNumber();
+                if (!tokenRead)
+                    tokenRead = TryLexWord();
+                if (!tokenRead)
+                    tokenRead = TryLexQuote();
+                if (!tokenRead)
+                {
+                    System.Console.WriteLine("Unreconized token");
+                    return;
+                }
             }
         }
 
+        public bool TryLexQuote()
+        {
+            if (Index >= Characters.Length)
+                return false;
+
+            char ch = Characters[Index];
+            if (ch != '\'' && ch != '"')
+                return false;
+            char quoteType;
+            StringBuilder stringBuilder = new StringBuilder();
+            Column++;
+            Index++;
+            quoteType = ch;
+            while (Index < Characters.Length && Characters[Index] != quoteType)
+            {
+                stringBuilder.Append(Characters[Index]);
+                Index++;
+            }
+
+            Index++; // eat close quote
+
+            Token token = new Token();
+            token.Column = Column;
+            token.Contents = stringBuilder.ToString(); // strip the quotes off
+            token.Line = Line;
+            token.Type = TokenType.String;
+            Tokens.Add(token);
+
+            return true;
+        }
         public bool TryConsumeWhitespace()
         {
 
@@ -214,7 +254,7 @@ namespace MiniLanguage
                 length++;
 
                 if (Index + length >= Characters.Length || !(Characters[Index + length] >= '0' && Characters[Index + length] <= '9'))
-                    return false; // [0-9]. not in the lexer grammer. Not sure if this is what I should actually do???
+                    return false; // [0-9].
             }
 
             while (Index + length < Characters.Length && Characters[Index + length] >= '0' && Characters[Index + length] <= '9')

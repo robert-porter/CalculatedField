@@ -90,7 +90,20 @@ namespace MiniLanguage
             visitor.Visit(this);
         }
     }
+    class StringExpression : Expression
+    {
+        public String Value;
 
+        public StringExpression(String s)
+        {
+            Value = s;
+        }
+
+        public override void Accept(Visitor visitor)
+        {
+            visitor.Visit(this);
+        }
+    }
     class BinaryExpression : Expression
     {
         public BinaryExpression()
@@ -214,6 +227,17 @@ namespace MiniLanguage
         }
     }
 
+    class RefDeclarationStatement : Statement
+    {
+        public String RefIdentifier;
+        public IdentifierExpression ReferencedVariable;
+
+        public override void Accept(Visitor visitor)
+        {
+            visitor.Visit(this);   
+        }
+    }
+
     class FunctionDeclarationStatement : Statement
     {
         public String Name;
@@ -223,6 +247,7 @@ namespace MiniLanguage
         public FunctionDeclarationStatement()
         {
             Body = new BlockStatement();
+            Arguments = new List<IdentifierExpression>();
         }
 
         public override void Accept(Visitor visitor)

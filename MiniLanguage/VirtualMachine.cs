@@ -10,8 +10,9 @@ namespace MiniLanguage
     {
         Stack<Value> Stack;
         Stack<int> ReturnAddresses;
-        List<Value> Variables;
         Stack<int> FrameOffsets;
+        List<Value> Variables;
+
 
         public VirtualMachine()
         {
@@ -40,7 +41,7 @@ namespace MiniLanguage
 
         public void PushReturnAddress(int address)
         {
-            ReturnAddresses.Push(address);
+            ReturnAddresses.Push(address+1); // +1 since address is at the call instruction
             FrameOffsets.Push(Variables.Count);
         }
 
@@ -53,16 +54,22 @@ namespace MiniLanguage
 
         public void SetVar(int location, Value value)
         {
-            int frameOffset = FrameOffsets.Peek();
-            Variables[location + frameOffset] = value;
+
+            if (location < 0)
+                Variables[-location - 1] = value;
+            else 
+                Variables[location + FrameOffsets.Peek()] = value;
         }
         public Value GetVar(int location)
         {
-            return Variables[location + FrameOffsets.Peek()];
+            if (location < 0)
+                return Variables[-location - 1];
+            else
+                return Variables[location + FrameOffsets.Peek()];
         }
-        public void AddVar(Value value)
+        public void AddVar()
         {
-            Variables.Add(value);
+            Variables.Add(new Value()) ;
         }
         public void AddArray(int size)
         {
@@ -88,6 +95,24 @@ namespace MiniLanguage
                         {
                             Value value = Peek();
                             Push(value);
+                            break;
+                        }
+                    case Instruction.Over:
+                        {
+                            Value top = Pop();
+                            Value next = Pop();
+                            Push(next);
+                            Push(top);
+                            Push(next);
+                            break;
+                        }
+                    case Instruction.Tuck:
+                        {
+                            Value top = Pop();
+                            Value next = Pop();
+                            Push(top);
+                            Push(next);
+                            Push(top);
                             break;
                         }
                     case Instruction.Add:
@@ -153,7 +178,7 @@ namespace MiniLanguage
                             Push(new Value(left.DoubleVal >= right.DoubleVal));
                             break;
                         }
-                    case Instruction.DoubleEqual: 
+                    case Instruction.Equal: 
                         {
                             Value right = Pop();
                             Value left = Pop();
@@ -171,56 +196,71 @@ namespace MiniLanguage
                         {
                             Value right = Pop();
                             Value left = Pop();
-                            Push(new Value(left.BoolVal && right.BoolVal));
+                            Push(new Value(left.AsBool() && right.AsBool()));
                             break;
                         }
                     case Instruction.Or:
                         {
                             Value right = Pop();
                             Value left = Pop();
-                            Push(new Value(left.BoolVal || right.BoolVal));
+                            Push(new Value(left.AsBool() || right.AsBool()));
                             break;
                         }
                     case Instruction.Not:
                         {
                             Value value = Pop();
-                            Push(new Value(!value.BoolVal));
+                            Push(new Value(!value.AsBool()));
                             break;
                         }
-                    case Instruction.LoadTrue:
+                    case Instruction.PushTrue:
                         {
                             Push(new Value(true));
                             break;
                         }
-                    case Instruction.LoadFalse:
+                    case Instruction.PushFalse:
                         {
                             Push(new Value(false));
                             break;
                         }
-                    case Instruction.LoadNumber:
+                    case Instruction.PushNumber:
                         {
                             int location = (int)instructions[++ip];
                             Value number = Constants[location];
                             Push(number);
                             break;
                         }
-                    case Instruction.LoadVariable:
+                    case Instruction.PushVariable:
                         {
                             int location = (int)instructions[++ip];
                             Push(GetVar(location));
                             break;
                         }
-                    case Instruction.LoadOffsetVariable:
+                    case Instruction.PushOffsetVariable:
                         {
                             int location = (int)instructions[++ip];
                             int offset = (int) Pop().DoubleVal;
                             Push(GetVar(location + offset));
                             break;
                         }
+                    case Instruction.PushReference:
+                        {
+                            int referenceLocation = (int)instructions[++ip];
+                            Value reference = GetVar(referenceLocation);
+                            Value value = GetVar(reference.PointerVal);
+                            Push(value);
+                            break;
+                        }
                     case Instruction.StoreVariable:
                         {
                             int location = (int)instructions[++ip];
                             SetVar(location, Pop());
+                            break;
+                        }
+                    case Instruction.StoreReference:
+                        {
+                            int referenceLocation = (int)instructions[++ip];
+                            Value reference = GetVar(referenceLocation);
+                            SetVar(reference.PointerVal, Pop());
                             break;
                         }
                     case Instruction.StoreOffsetVariable:
@@ -232,8 +272,14 @@ namespace MiniLanguage
                         }
                     case Instruction.NewVariable:
                         {
-                            //int location = (int)instructions[++ip];
-                            AddVar(new Value());
+                            AddVar();
+                            break;
+                        }
+                    case Instruction.NewReference:
+                        {
+                            AddVar();
+                            int location = (int)instructions[++ip];
+                            Variables[Variables.Count - 1] = new Value(location);
                             break;
                         }
                     case Instruction.NewArray:
@@ -245,32 +291,29 @@ namespace MiniLanguage
                     case Instruction.JumpOnFalse:
                         {
                             int jumpLocation = (int)instructions[++ip];
-                            Value bVal = Pop();
-                            // -1 since the instruction pointer will be incremented after the instruction is executed.
-                            if (!bVal.BoolVal)
-                                ip = (int)jumpLocation - 1;
-                            break;
+                            Value value = Pop();
+                            if (!value.AsBool())
+                                ip = (int)jumpLocation;
+                            continue;
                         }
                     case Instruction.Call:
                         {
                             int jumpLocation = (int)instructions[++ip];
                             PushReturnAddress(ip);
-                            // -1 since the instruction pointer will be incremented after the instruction is executed.
-                            ip = jumpLocation - 1;
-                            break;
+                            ip = jumpLocation;
+                            continue;
                         }
                     case Instruction.Return:
                         {
                             int address = PopReturnAddress();
                             ip = address;
-                            break;
+                            continue;
                         }
                     case Instruction.Jump:
                         {
                             int jumpLocation = (int)instructions[++ip];
-                            // -1 since the instruction pointer will be incremented after the instruction is executed.
-                            ip = jumpLocation - 1;
-                            break;
+                            ip = jumpLocation;
+                            continue;
                         }
                 }
                 ip++;

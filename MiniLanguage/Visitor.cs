@@ -23,6 +23,8 @@ namespace MiniLanguage
         public virtual void Visit(ExpressionStatement expressionStatement) { }
         public virtual void Visit(ReturnStatement returnStatement) { }
         public abstract void Visit(ProgramNode program);
+        public abstract void Visit(StringExpression stringExpression);
+        public abstract void Visit(RefDeclarationStatement refDeclarationStatement);
         public virtual void Visit(ArrayIndexExpression arrayIndexExpression) { }
     }
 }

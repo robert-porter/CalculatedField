@@ -82,6 +82,13 @@ namespace MiniLanguage
                 Write("false");
         }
 
+        public override void Visit(StringExpression expression)
+        {
+            Write("\"");
+            Write(expression.Value);
+            Write("\"");
+        }
+
         public override void Visit(BinaryExpression binaryExpression)
         {
             String strOp = "";
@@ -152,6 +159,15 @@ namespace MiniLanguage
                 Write(" ");
                 varDeclStatement.InitialValue.Accept(this);
             }
+            Write(")");
+        }
+
+        public override void Visit(RefDeclarationStatement refDeclStatement)
+        {
+            Write("(ref ");
+            Write(refDeclStatement.RefIdentifier);
+            Write(" ");
+            Write(refDeclStatement.ReferencedVariable.Name);
             Write(")");
         }
 
