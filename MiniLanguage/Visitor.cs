@@ -9,8 +9,8 @@ namespace MiniLanguage
     abstract class Visitor
     {
         public virtual void Visit(IdentifierExpression identifier) { }
-        public virtual void Visit(NumberExpression number) { }
-        public abstract void Visit(BoolExpression expression);
+        public virtual void Visit(FloatLiteralExpression number) { }
+        public abstract void Visit(BoolLiteralExpression expression);
         public virtual void Visit(BinaryExpression binaryExpression) { }
         public virtual void Visit(UnaryExpression unaryExpression) { }
         public virtual void Visit(AssignmentExpression assignmentStatement) { }
@@ -23,7 +23,7 @@ namespace MiniLanguage
         public virtual void Visit(ExpressionStatement expressionStatement) { }
         public virtual void Visit(ReturnStatement returnStatement) { }
         public abstract void Visit(ProgramNode program);
-        public abstract void Visit(StringExpression stringExpression);
+        public abstract void Visit(StringLiteralExpression stringExpression);
         public abstract void Visit(RefDeclarationStatement refDeclarationStatement);
         public virtual void Visit(ArrayIndexExpression arrayIndexExpression) { }
     }

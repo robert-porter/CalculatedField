@@ -167,25 +167,25 @@ namespace MiniLanguage
             }
         }
 
-        public override void Visit(NumberExpression number)
+        public override void Visit(FloatLiteralExpression number)
         {
-            double value = double.Parse(number.Value);
+            double value = double.Parse(number.StringValue);
             Constants.Add(new Value(value));
             Instructions.Add(Instruction.PushNumber);
             Instructions.Add((Instruction)Constants.Count - 1);
 
         }
 
-        public override void Visit(BoolExpression boolExpression)
+        public override void Visit(BoolLiteralExpression boolExpression)
         {
-            if (boolExpression.Value)
+            if (boolExpression.BoolValue)
                 Instructions.Add(Instruction.PushTrue);
             else
                 Instructions.Add(Instruction.PushFalse);
 
         }
 
-        public override void Visit(StringExpression stringExpression)
+        public override void Visit(StringLiteralExpression stringExpression)
         {
             Constants.Add(new Value(stringExpression.Value));
             Instructions.Add(Instruction.PushNumber);
@@ -223,17 +223,17 @@ namespace MiniLanguage
             jumpOnFalseArgLocation = Instructions.Count;
             Instructions.Add((Instruction)0); // placeholder for jump on false argument
             
-            ifStatement.Consequent.Accept(this);
-            if (ifStatement.Alternate != null)
+            ifStatement.ThenBody.Accept(this);
+            if (ifStatement.ElseBody != null)
             {
                 Instructions.Add(Instruction.Jump);
                 jumpPastElseArgLocation = Instructions.Count;
                 Instructions.Add((Instruction)0); // placeholder for jump argument
             }
             Instructions[jumpOnFalseArgLocation] = (Instruction) Instructions.Count;
-            if (ifStatement.Alternate != null)
+            if (ifStatement.ElseBody != null)
             {
-                ifStatement.Alternate.Accept(this);
+                ifStatement.ElseBody.Accept(this);
                 Instructions[jumpPastElseArgLocation] = (Instruction) Instructions.Count;
             }
             
@@ -358,7 +358,7 @@ namespace MiniLanguage
                     Instructions.Add(Instruction.NewVariable);
                     Instructions.Add(Instruction.StoreVariable);
                     Instructions.Add((Instruction)NextVariableLocation);
-                    VariableLocations.AddLocation(funcDeclStatement.Arguments[i].Name, NextVariableLocation);
+                    VariableLocations.AddLocation(funcDeclStatement.Arguments[i], NextVariableLocation);
                     NextVariableLocation++;
                 }
             }

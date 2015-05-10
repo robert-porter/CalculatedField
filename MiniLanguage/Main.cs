@@ -13,11 +13,11 @@ namespace MiniLanguage
             Lexer lexer = new Lexer(
 @"
 
-function f() { 
-    return q;
+function f(x, y) { 
+    return x+y;
 }
 var q = 10;
-var v = f();
+var v = 2*(3+3)*5 + 2 * 3;
 "
                 );
 

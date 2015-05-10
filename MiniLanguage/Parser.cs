@@ -8,34 +8,23 @@ namespace MiniLanguage
 {
     class Parser
     {
+        List<Token> Tokens;
+        int Index;
 
         public Parser(List<Token> tokens)
         {
             Tokens = tokens;
+            Index = 0;
         }
 
-
-
-        List<Token> Tokens;
-        int Index;
-
-        Token Peek()
-        {
-            return Tokens[Index];
-        }
-
-        Token Peek(int ahead)
-        {
-            return Tokens[Index + ahead];
-        }
         Token Read()
         {
             return Tokens[Index++];
         }
 
-        bool Accept(TokenType type)
+        bool MatchAndRead(TokenType type)
         {
-            if (Peek().Type == type)
+            if (Tokens[Index].Type == type)
             {
                 Read();
                 return true;
@@ -43,25 +32,17 @@ namespace MiniLanguage
             return false;
         }
 
-        bool Peek(TokenType type)
-        {
-            if (Index >= Tokens.Count)
-                return false;
-
-            return Peek().Type == type;
-        }
-
-        bool Peek(TokenType type, int ahead)
+        bool Match(TokenType type, int ahead = 0)
         {
             if (Index + ahead >= Tokens.Count)
                 return false;
 
-            return Peek(ahead).Type == type;
+            return Tokens[Index + ahead].Type == type;
         }
 
         bool Expect(TokenType token)
         {
-            if (Accept(token))
+            if (MatchAndRead(token))
                 return true;
             System.Console.WriteLine("Error Expected...");
             throw new Exception();
@@ -74,14 +55,13 @@ namespace MiniLanguage
             throw new Exception();
         }
 
-
         List<Expression> ParseFunctionCallArguments()
         {
             List<Expression> arguments = new List<Expression>();
-            while (!Peek(TokenType.CloseParen))
+            while (!Match(TokenType.CloseParen))
             {
                 arguments.Add(ParseExpression());
-                if (!Peek(TokenType.CloseParen))
+                if (!Match(TokenType.CloseParen))
                     Expect(TokenType.Comma);
             }
 
@@ -91,35 +71,36 @@ namespace MiniLanguage
         Expression ParseFactor()
         {
             Expression factor = null;
-            UnaryExpression unaryExpression = null;
-            if (Peek(TokenType.Plus))
+            UnaryExpression.Operator unaryOperator = UnaryExpression.Operator.Plus;
+            bool isUnary = false;
+            if (Match(TokenType.Plus))
             {
-                unaryExpression = new UnaryExpression(UnaryExpression.Operator.Plus);
+                isUnary = true;
+                unaryOperator = UnaryExpression.Operator.Plus;
                 Read();
             }
-            else if (Peek(TokenType.Minus))
+            else if (MatchAndRead(TokenType.Minus))
             {
-                unaryExpression = new UnaryExpression(UnaryExpression.Operator.Minus);
-                Read();
+                isUnary = true;
+                unaryOperator = UnaryExpression.Operator.Minus; 
             }
-            else if (Peek(TokenType.Bang))
+            else if (MatchAndRead(TokenType.Bang))
             {
-                unaryExpression = new UnaryExpression(UnaryExpression.Operator.Not);
-                Read();
+                isUnary = true;
+                unaryOperator = UnaryExpression.Operator.Not;
             }
 
-            if (Peek(TokenType.Identifier))
+            if (Match(TokenType.Identifier))
             {
-                if (Peek(TokenType.OpenParen, 1))
+                if (Match(TokenType.OpenParen, 1))
                 {
-                    FunctionCallExpression callExpression = new FunctionCallExpression();
-                    callExpression.Identifier = new IdentifierExpression(Read().Contents);
+                    IdentifierExpression identifier = new IdentifierExpression(Read().Contents);
                     Read();
-                    callExpression.Arguments = ParseFunctionCallArguments();
+                    List<Expression> arguments = ParseFunctionCallArguments();
                     Expect(TokenType.CloseParen);
-                    factor = callExpression;
+                    factor = new FunctionCallExpression(identifier, arguments);
                 }
-                else if(Peek(TokenType.OpenSquareBracket, 1))
+                else if(Match(TokenType.OpenSquareBracket, 1))
                 {
                     String identifier = Read().Contents;
                     Read();
@@ -131,38 +112,34 @@ namespace MiniLanguage
                 else 
                     factor = new IdentifierExpression(Read().Contents);
             }
-            else if (Peek(TokenType.Number))
+            else if (Match(TokenType.NumberLiteral))
             {
-                factor = new NumberExpression(Read().Contents);
+                factor = new FloatLiteralExpression(Read().Contents);
             }
-            else if (Accept(TokenType.OpenParen))
+            else if (MatchAndRead(TokenType.OpenParen))
             {
                 Expression e = ParseExpression();
                 Expect(TokenType.CloseParen);
 
                 factor = e;
             }
-            else if(Accept(TokenType.True))
+            else if(Match(TokenType.True) || Match(TokenType.False))
             {
-                factor = new BoolExpression(true);
+                Token token = Read();
+                factor = new BoolLiteralExpression(token.Contents);
             }
-            else if(Accept(TokenType.False))
+            else if (Match(TokenType.StringLiteral))
             {
-                factor = new BoolExpression(false);
-            }
-            else if (Peek(TokenType.String))
-            {
-                factor = new StringExpression(Read().Contents);
+                factor = new StringLiteralExpression(Read().Contents);
             }
             else
             {
                 Error("factor: syntax error");
             }
 
-            if (unaryExpression != null)
+            if (isUnary)
             {
-                unaryExpression.Argument = factor;
-                return unaryExpression;
+                return new UnaryExpression(unaryOperator, factor);
             }
             else
                 return factor;
@@ -170,149 +147,115 @@ namespace MiniLanguage
 
         Expression ParseTerm()
         {
-            BinaryExpression rootBinaryExpression = new BinaryExpression();
-            BinaryExpression binaryExpression = rootBinaryExpression;
-            Expression rightFactor;
+            Expression left, right;
+            BinaryExpression.Operator op = BinaryExpression.Operator.Add;
 
-            rootBinaryExpression.Left = ParseFactor();
-            while (Peek(TokenType.Times) || Peek(TokenType.Slash))
+            left = ParseFactor();
+            while (Match(TokenType.Star) || Match(TokenType.Slash))
             {
-                if (Peek(TokenType.Times))
-                    binaryExpression.Op = BinaryExpression.Operator.Multiply;
-                else if (Peek(TokenType.Slash))
-                    binaryExpression.Op = BinaryExpression.Operator.Divide;
+                if (Match(TokenType.Star))
+                    op = BinaryExpression.Operator.Multiply;
+                else if (Match(TokenType.Slash))
+                    op = BinaryExpression.Operator.Divide;
 
                 Read();
-                rightFactor = ParseFactor();
+                right = ParseFactor();
 
-                if ((Peek(TokenType.Times) || Peek(TokenType.Slash)))
+                if ((Match(TokenType.Star) || Match(TokenType.Slash)))
                 {
-                    // Make a*b*c into the ast (* a(* b c))
-                    BinaryExpression rightExpression = new BinaryExpression();
-                    rightExpression.Left = rightFactor;
-                    binaryExpression.Right = rightExpression;
-                    binaryExpression = rightExpression;
+                    left = new BinaryExpression(op, left, right);
+                
                 }
                 else
                 {
-                    binaryExpression.Right = rightFactor;
+                    return new BinaryExpression(op, left, right);
                 }
             }
 
-            if (rootBinaryExpression.Right == null)
-                return rootBinaryExpression.Left;
-            else
-                return rootBinaryExpression;
+            return left;
         }
 
         Expression ParseArithmeticExpression()
         {
+            BinaryExpression.Operator op = BinaryExpression.Operator.Add;
+            Expression left, right;
+            left = ParseTerm();
 
-            BinaryExpression rootBinaryExpression = new BinaryExpression();
-            BinaryExpression binaryExpression = rootBinaryExpression;
-
-            rootBinaryExpression.Left = ParseTerm();
-
-            Expression rightTerm;
-
-            while (Peek(TokenType.Plus) || Peek(TokenType.Minus))
+            while (Match(TokenType.Plus) || Match(TokenType.Minus))
             {
-                if (Peek(TokenType.Plus))
-                    binaryExpression.Op = BinaryExpression.Operator.Add;
-                else if (Peek(TokenType.Minus))
-                    binaryExpression.Op = BinaryExpression.Operator.Subtract;
+                if (Match(TokenType.Plus))
+                    op = BinaryExpression.Operator.Add;
+                else if (Match(TokenType.Minus))
+                    op = BinaryExpression.Operator.Subtract;
 
                 Read();
-                rightTerm = ParseTerm();
+                right = ParseTerm();
 
-                if (Peek(TokenType.Plus) || Peek(TokenType.Minus))
+                if (Match(TokenType.Plus) || Match(TokenType.Minus))
                 {
-                    // Make a+b+c into the ast (+ a(+ b c))
-                    BinaryExpression rightExpression = new BinaryExpression();
-                    rightExpression.Left = rightTerm;
-                    binaryExpression.Right = rightExpression;
-                    binaryExpression = rightExpression;
+                    left = new BinaryExpression(op, left, right);
+
                 }
                 else
                 {
-                    binaryExpression.Right = rightTerm;
+                    return new BinaryExpression(op, left, right);
                 }
             }
 
-            Expression expression;
-            if (rootBinaryExpression.Right == null)
-                expression = rootBinaryExpression.Left;
-            else expression = rootBinaryExpression;
-
-            return expression;
+            return left;
         }
 
         // put == and != before this?
         Expression ParseConditionalExpression()
         {
 
-            BinaryExpression binaryExpression = new BinaryExpression();
-            binaryExpression.Left = ParseArithmeticExpression();
+            BinaryExpression.Operator op = BinaryExpression.Operator.Add;
+            Expression left = ParseArithmeticExpression();
 
-            if (Peek(TokenType.DoubleEqual))
-                binaryExpression.Op = BinaryExpression.Operator.DoubleEqual;
-            else if (Peek(TokenType.NotEqual))
-                binaryExpression.Op = BinaryExpression.Operator.NotEqual;
-            else if (Peek(TokenType.Less))
-                binaryExpression.Op = BinaryExpression.Operator.Less;
-            else if (Peek(TokenType.LessOrEqual))
-                binaryExpression.Op = BinaryExpression.Operator.LessOrEqual;
-            else if (Peek(TokenType.Greater))
-                binaryExpression.Op = BinaryExpression.Operator.Greater;
-            else if (Peek(TokenType.GreaterOrEqual))
-                binaryExpression.Op = BinaryExpression.Operator.GreaterOrEqual;
+            if (Match(TokenType.DoubleEqual))
+                op = BinaryExpression.Operator.DoubleEqual;
+            else if (Match(TokenType.NotEqual))
+                op = BinaryExpression.Operator.NotEqual;
+            else if (Match(TokenType.Less))
+                op = BinaryExpression.Operator.Less;
+            else if (Match(TokenType.LessOrEqual))
+                op = BinaryExpression.Operator.LessOrEqual;
+            else if (Match(TokenType.Greater))
+                op = BinaryExpression.Operator.Greater;
+            else if (Match(TokenType.GreaterOrEqual))
+                op = BinaryExpression.Operator.GreaterOrEqual;
             else
-                return binaryExpression.Left;
+                return left;
 
-            Read();
+            Read(); // read operator
 
-            binaryExpression.Right = ParseArithmeticExpression();
-
-            return binaryExpression;
+            return new BinaryExpression(op, left, ParseArithmeticExpression());
         }
 
         Expression ParseAndExpression()
         {
-            BinaryExpression rootBinaryExpression = new BinaryExpression();
-            BinaryExpression binaryExpression = rootBinaryExpression;
-
-            rootBinaryExpression.Left = ParseConditionalExpression();
-
+         
+            Expression left = ParseConditionalExpression();
             Expression right;
 
-            while (Peek(TokenType.And))
+            while (Match(TokenType.And))
             {
-                if (Peek(TokenType.And))
-                    binaryExpression.Op = BinaryExpression.Operator.And;
-
-                Read();
-                right = ParseConditionalExpression();
-
-                if (Peek(TokenType.And))
+                if (Match(TokenType.And))
                 {
-                    BinaryExpression newRight = new BinaryExpression();
-                    binaryExpression.Right = newRight;
-                    newRight.Left = right;
-                    binaryExpression = newRight;
-                }
-                else
-                {
-                    binaryExpression.Right = right;
-                }
+                    Read();
+                    right = ParseConditionalExpression();
 
+                    if (Match(TokenType.And))
+                    {
+                        left = new BinaryExpression(BinaryExpression.Operator.And, left, right);
+                    }
+                    else
+                    {
+                        return new BinaryExpression(BinaryExpression.Operator.Add, left, right);
+                    }
+                }
             }
-
-            Expression expression;
-            if (rootBinaryExpression.Right == null)
-                expression = rootBinaryExpression.Left;
-            else expression = rootBinaryExpression;
-
-            return expression;
+            return left;
         }
 
         //top level operator, parses or expression
@@ -321,30 +264,21 @@ namespace MiniLanguage
         {
             int oldIndex = Index; // need to backtrack if array indexing but not assignment.
 
-            if (Peek(TokenType.Identifier) && Peek(TokenType.Equal, 1))
+            if (Match(TokenType.Identifier) && Match(TokenType.Equal, 1))
             {
                 IdentifierExpression identifier = new IdentifierExpression(Read().Contents);
-
-                AssignmentExpression assignmentExpression = new AssignmentExpression();
-                assignmentExpression.Left = identifier;
                 Expect(TokenType.Equal);
-                assignmentExpression.Right = ParseExpression();
-
-                return assignmentExpression;
+                return new AssignmentExpression(identifier, ParseExpression());
             }
-            else if (Peek(TokenType.Identifier) && Peek(TokenType.OpenSquareBracket, 1))
+            else if (Match(TokenType.Identifier) && Match(TokenType.OpenSquareBracket, 1))
             {
                 String identifier = Read().Contents;
                 Read();
                 ArrayIndexExpression indexExpression = new ArrayIndexExpression(identifier, ParseExpression());
                 Expect(TokenType.CloseSquareBracket);
-                if (Accept(TokenType.Equal))
+                if (MatchAndRead(TokenType.Equal))
                 {
-                    AssignmentExpression assignmentExpression = new AssignmentExpression();
-                    assignmentExpression.Left = indexExpression;
-                    assignmentExpression.Right = ParseExpression();
-
-                    return assignmentExpression;
+                    return new AssignmentExpression(indexExpression, ParseExpression());
                 }
                 else
                 {
@@ -355,19 +289,19 @@ namespace MiniLanguage
             return ParseOr();
         }
 
-        List<IdentifierExpression> ParseFunctionDeclarationArguments()
+        List<String> ParseFunctionDeclarationArguments()
         {
-            if (Peek(TokenType.CloseParen))
+            if (Match(TokenType.CloseParen))
                 return null;
 
-            List<IdentifierExpression> arguments = new List<IdentifierExpression>();
-            while (!Peek(TokenType.CloseParen))
+            List<String> arguments = new List<String>();
+            while (!Match(TokenType.CloseParen))
             {
-                if (Peek(TokenType.Identifier))
-                    arguments.Add(new IdentifierExpression(Read().Contents));
+                if (Match(TokenType.Identifier))
+                    arguments.Add(Read().Contents);
                 else Error("Identifier expected");
 
-                if (!Peek(TokenType.CloseParen))
+                if (!Match(TokenType.CloseParen))
                     Expect(TokenType.Comma);
             }
 
@@ -376,92 +310,78 @@ namespace MiniLanguage
 
         Expression ParseOr()
         {
-
-            BinaryExpression rootBinaryExpression = new BinaryExpression();
-            BinaryExpression binaryExpression = rootBinaryExpression;
-
-            rootBinaryExpression.Left = ParseAndExpression();
-
+            Expression left = ParseAndExpression();
             Expression right;
 
-            while (Peek(TokenType.Or))
+            while (Match(TokenType.Or))
             {
-                if (Peek(TokenType.Or))
-                    binaryExpression.Op = BinaryExpression.Operator.Or;
-
-                Read();
-                right = ParseAndExpression();
-
-                if (Peek(TokenType.Or))
+                if (Match(TokenType.Or))
                 {
-                    BinaryExpression newRight = new BinaryExpression();
-                    newRight.Left = right;
-                    binaryExpression.Right = newRight;
-                    binaryExpression = newRight;
-                }
-                else
-                {
-                    binaryExpression.Right = right;
-                }
+                    Read();
+                    right = ParseAndExpression();
 
+                    if (Match(TokenType.And))
+                    {
+                        left = new BinaryExpression(BinaryExpression.Operator.And, left, right);
+                    }
+                    else
+                    {
+                        return new BinaryExpression(BinaryExpression.Operator.Add, left, right);
+                    }
+                }
             }
-
-            Expression expression;
-            if (rootBinaryExpression.Right == null)
-                expression = rootBinaryExpression.Left;
-            else expression = rootBinaryExpression;
-
-            return expression;
+            return left;
         }
 
         Statement ParseStatement()
         {
-            if (Accept(TokenType.OpenCurlyBrace))
+            if (MatchAndRead(TokenType.OpenCurlyBrace))
             {
-                BlockStatement blockStatement = new BlockStatement();
-                while (!Peek(TokenType.CloseCurlyBrace))
+                List<Statement> statements = new List<Statement>();
+                while (!Match(TokenType.CloseCurlyBrace))
                 {
                     Statement statement = ParseStatement();
-                    blockStatement.Statements.Add(statement);
+                    statements.Add(statement);
                 }
 
                 Expect(TokenType.CloseCurlyBrace);
-                return blockStatement;
+                return new BlockStatement(statements);
             }
-            else if (Accept(TokenType.If))
+            else if (MatchAndRead(TokenType.If))
             {
-                IfStatement ifStatement = new IfStatement();
                 Expect(TokenType.OpenParen);
-                ifStatement.Condition = ParseExpression();
+                Expression condition = ParseExpression();
                 Expect(TokenType.CloseParen);
-                ifStatement.Consequent = ParseStatement();
+                Statement thenBody = ParseStatement();
 
-                if (Peek(TokenType.Else))
+                if (Match(TokenType.Else))
                 {
                     Read();
-                    ifStatement.Alternate = ParseStatement();
-                }
-                return ifStatement;
-            }
-            else if (Accept(TokenType.While))
-            {
-                WhileStatement whileStatement = new WhileStatement();
-                Expect(TokenType.OpenParen);
-                whileStatement.Condition = ParseExpression();
-                Expect(TokenType.CloseParen);
-                whileStatement.Body = ParseStatement();
+                    Statement elseBody = ParseStatement();
 
-                return whileStatement;
+                    return new IfStatement(condition, thenBody, elseBody);
+                }
+                else
+                    return new IfStatement(condition, thenBody);
             }
-            else if (Peek(TokenType.Var))
+            else if (MatchAndRead(TokenType.While))
+            {
+                Expect(TokenType.OpenParen);
+                Expression condition = ParseExpression();
+                Expect(TokenType.CloseParen);
+                Statement body = ParseStatement();
+
+                return new WhileStatement(condition, body);
+            }
+            else if (Match(TokenType.Var))
             {
                 return ParseValDeclarationStatment();
             }
-            else if(Accept(TokenType.Ref))
+            else if(MatchAndRead(TokenType.Ref))
             {
                 if(Index + 3 >= Tokens.Count)
                     throw new Exception("unexpected token");
-                if(!(Peek(TokenType.Identifier) && Peek(TokenType.Equal, 1) && Peek(TokenType.Identifier)))
+                if(!(Match(TokenType.Identifier) && Match(TokenType.Equal, 1) && Match(TokenType.Identifier)))
                     throw new Exception("unexpected token");
                 
                 RefDeclarationStatement refDeclarationStatement = new RefDeclarationStatement();
@@ -473,59 +393,69 @@ namespace MiniLanguage
 
                 return refDeclarationStatement;
             }
-            else if (Accept(TokenType.Function))
+            else if (Match(TokenType.Function))
             {
-                FunctionDeclarationStatement funcDecl = new FunctionDeclarationStatement();
-                if (!Peek(TokenType.Identifier))
-                    throw new Exception("Identifier expected");
-                funcDecl.Name = Read().Contents;
-
-                Expect(TokenType.OpenParen);
-
-                funcDecl.Arguments = ParseFunctionDeclarationArguments();
-                Expect(TokenType.CloseParen);
-                Expect(TokenType.OpenCurlyBrace);
-                while (!Peek(TokenType.CloseCurlyBrace))
-                {
-                    Statement statement = ParseStatement();
-                    funcDecl.Body.Statements.Add(statement);
-                }
-
-                Expect(TokenType.CloseCurlyBrace);
-
-                return funcDecl;
-
+                return ParseFunctionDeclarationStatement();
             }
-            else if (Accept(TokenType.Return))
+            else if (MatchAndRead(TokenType.Return))
             {
-                ReturnStatement returnStatement = new ReturnStatement();
-                returnStatement.Expression = ParseExpression();
+                ReturnStatement returnStatement = new ReturnStatement(ParseExpression());
                 Expect(TokenType.Semicolon);
                 return returnStatement;
             }
             else
             {
-                ExpressionStatement expressionStatement = new ExpressionStatement();
-                expressionStatement.Expression = ParseExpression();
+                ExpressionStatement expressionStatement = new ExpressionStatement(ParseExpression());
                 Expect(TokenType.Semicolon);
                 return expressionStatement;
             }
-            return null;
+        }
+
+        public FunctionDeclarationStatement ParseFunctionDeclarationStatement()
+        {
+            if (!Match(TokenType.Function))
+                return null;
+            Read();
+
+            String name;
+            List<String> arguments = new List<string>();
+            List<Statement> statements = new List<Statement>();
+
+            if (!Match(TokenType.Identifier))
+                throw new Exception("Identifier expected");
+            name = Read().Contents;
+
+            Expect(TokenType.OpenParen);
+
+            arguments = ParseFunctionDeclarationArguments();
+            Expect(TokenType.CloseParen);
+            Expect(TokenType.OpenCurlyBrace);
+
+
+            while (!Match(TokenType.CloseCurlyBrace))
+            {
+                Statement statement = ParseStatement();
+                statements.Add(statement);
+            }
+
+            Expect(TokenType.CloseCurlyBrace);
+
+            return new FunctionDeclarationStatement(name, arguments, new BlockStatement(statements));
         }
 
         public VarDeclarationStatement ParseValDeclarationStatment()
         {
-            if (!Accept(TokenType.Var))
+            if (!MatchAndRead(TokenType.Var))
                 return null;
 
             VarDeclarationStatement varDeclStatement = new VarDeclarationStatement();
-            if (!Peek(TokenType.Identifier))
+            if (!Match(TokenType.Identifier))
                 Error("identifier expected");
             varDeclStatement.Identifier = Read().Contents;
 
-            if (Accept(TokenType.OpenSquareBracket))
+            if (MatchAndRead(TokenType.OpenSquareBracket))
             {
-                if (!Peek(TokenType.Number))
+                if (!Match(TokenType.NumberLiteral))
                 {
                     Error("Array size expected");
                 }
@@ -535,7 +465,23 @@ namespace MiniLanguage
                 varDeclStatement.ArraySize = arraySize;
             }
 
-            if (Peek(TokenType.Equal))
+            if(Match(TokenType.Colon))
+            {
+                Read();
+                VariableType variableType = VariableType.Any;
+                if (MatchAndRead(TokenType.Int))
+                    variableType = VariableType.Int;
+                else if (MatchAndRead(TokenType.Float))
+                    variableType = VariableType.Float;
+                else if (MatchAndRead(TokenType.String))
+                    variableType = VariableType.String;
+                else if (MatchAndRead(TokenType.Bool))
+                    variableType = VariableType.Bool;
+
+                varDeclStatement.Type = variableType;
+            }
+
+            if (Match(TokenType.Equal))
             {
                 Read();
                 varDeclStatement.InitialValue = ParseExpression();
@@ -551,36 +497,20 @@ namespace MiniLanguage
 
             while (Index < Tokens.Count)
             {
-                if (Peek(TokenType.Var))
+                if (Match(TokenType.Var))
                 {
                     program.VariableDeclarations.Add(ParseValDeclarationStatment());
                 }
 
-                else if (Accept(TokenType.Function))
+                else if (Match(TokenType.Function))
                 {
-                    FunctionDeclarationStatement funcDecl = new FunctionDeclarationStatement();
-                    if (!Peek(TokenType.Identifier))
-                        throw new Exception("Identifier expected");
-                    funcDecl.Name = Read().Contents;
-
-                    Expect(TokenType.OpenParen);
-
-                    funcDecl.Arguments = ParseFunctionDeclarationArguments();
-                    Expect(TokenType.CloseParen);
-                    Expect(TokenType.OpenCurlyBrace);
-                    while (!Peek(TokenType.CloseCurlyBrace))
-                    {
-                        Statement statement = ParseStatement();
-                        funcDecl.Body.Statements.Add(statement);
-                    }
-
-                    Expect(TokenType.CloseCurlyBrace);
-
-                    program.FunctionDeclarations.Add(funcDecl);
+                    FunctionDeclarationStatement funcDecl = ParseFunctionDeclarationStatement();
+                    if(funcDecl != null)
+                        program.FunctionDeclarations.Add(funcDecl);
                 }
                 else
                 {
-                    throw new Exception("Unexpected token on line: " + Peek().Line.ToString());
+                    throw new Exception("Unexpected token");
                 }
             }
             return program;

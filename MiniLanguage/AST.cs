@@ -13,7 +13,6 @@ namespace MiniLanguage
 
     class ProgramNode : ASTNode
     {
-
         public List<VarDeclarationStatement> VariableDeclarations;
         public List<FunctionDeclarationStatement> FunctionDeclarations;
 
@@ -36,11 +35,12 @@ namespace MiniLanguage
 
     class IdentifierExpression : Expression
     {
+        public readonly String Name;
+
         public IdentifierExpression(String name)
         {
             Name = name;
         }
-        public String Name { get; set; }
 
         public override void Accept(Visitor visitor)
         {
@@ -50,7 +50,8 @@ namespace MiniLanguage
 
     class ArrayIndexExpression : IdentifierExpression
     {
-        public Expression IndexExpression;
+        public readonly Expression IndexExpression;
+
         public ArrayIndexExpression(String identifier, Expression indexExpression) : base(identifier)
         {
             IndexExpression = indexExpression;
@@ -61,14 +62,16 @@ namespace MiniLanguage
             visitor.Visit(this);
         }
     }
-    class NumberExpression : Expression
-    {
-        public NumberExpression(String value)
-        {
-            Value = value;
-        }
 
-        public String Value { get; set; }
+    class FloatLiteralExpression : Expression
+    {
+        public readonly String StringValue;
+        public float FloatValue { get { return float.Parse(StringValue); } }
+
+        public FloatLiteralExpression(String value)
+        {
+            StringValue = value;
+        }
         
         public override void Accept(Visitor visitor)
         {
@@ -76,13 +79,14 @@ namespace MiniLanguage
         }
     }
 
-    class BoolExpression : Expression
+    class BoolLiteralExpression : Expression
     {
-        public bool Value;
+        public readonly String StringValue;
+        public bool BoolValue { get { return bool.Parse(StringValue); } }
 
-        public BoolExpression(bool b)
+        public BoolLiteralExpression(String value)
         {
-            Value = b;
+            StringValue = value;
         }
 
         public override void Accept(Visitor visitor)
@@ -90,11 +94,12 @@ namespace MiniLanguage
             visitor.Visit(this);
         }
     }
-    class StringExpression : Expression
-    {
-        public String Value;
 
-        public StringExpression(String s)
+    class StringLiteralExpression : Expression
+    {
+        public readonly String Value;
+
+        public StringLiteralExpression(String s)
         {
             Value = s;
         }
@@ -104,15 +109,20 @@ namespace MiniLanguage
             visitor.Visit(this);
         }
     }
+
     class BinaryExpression : Expression
     {
-        public BinaryExpression()
+        public readonly Operator Op;
+        public readonly Expression Left;
+        public readonly Expression Right;
+
+        public BinaryExpression(Operator op, Expression left, Expression right)
         {
+            Op = op;
+            Left = left;
+            Right = right;
         }
 
-        public Expression Left { get; set; }
-        public Expression Right { get; set; }
-        public Operator Op { get; set; }
         public enum Operator
         {
             Add,
@@ -129,8 +139,6 @@ namespace MiniLanguage
             Or
         }
 
-
-        
         public override void Accept(Visitor visitor)
         {
  	        visitor.Visit(this);
@@ -139,12 +147,14 @@ namespace MiniLanguage
 
     class UnaryExpression : Expression
     {
-        public UnaryExpression(Operator op)
+        public readonly Expression Argument;
+        public readonly Operator Op;
+
+        public UnaryExpression(Operator op, Expression argument)
         {
             Op = op;
+            Argument = argument;
         }
-        public Expression Argument { get; set; }
-        public Operator Op { get; set; }
 
         public enum Operator
         {
@@ -152,7 +162,6 @@ namespace MiniLanguage
             Minus,
             Not
         }
-
 
         public override void Accept(Visitor visitor)
         {
@@ -162,11 +171,13 @@ namespace MiniLanguage
 
     class FunctionCallExpression : Expression 
     {
-        public IdentifierExpression Identifier { get; set; }
-        public List<Expression> Arguments { get; set; }
+        public readonly IdentifierExpression Identifier;
+        public readonly List<Expression> Arguments;
 
-        public FunctionCallExpression()
+        public FunctionCallExpression(IdentifierExpression identifier, List<Expression> arguments)
         {
+            Identifier = identifier;
+            Arguments = arguments;
         }
 
         public override void Accept(Visitor visitor)
@@ -182,7 +193,12 @@ namespace MiniLanguage
 
     class ExpressionStatement : Statement
     {
-        public Expression Expression;
+        public readonly Expression Expression;
+
+        public ExpressionStatement(Expression expression)
+        {
+            Expression = expression;
+        }
 
         public override void Accept(Visitor visitor)
         {
@@ -192,7 +208,12 @@ namespace MiniLanguage
 
     class ReturnStatement : Statement
     {
-        public Expression Expression;
+        public readonly Expression Expression;
+
+        public ReturnStatement(Expression expression)
+        {
+            Expression = expression;
+        }
 
         public override void Accept(Visitor visitor)
         {
@@ -203,9 +224,14 @@ namespace MiniLanguage
 
     class AssignmentExpression : Expression
     {
-        public IdentifierExpression Left { get; set; }
-        public Expression Right { get; set; }
+        public readonly IdentifierExpression Left;
+        public readonly Expression Right; 
 
+        public AssignmentExpression(IdentifierExpression left, Expression right)
+        {
+            Left = left;
+            Right = right;
+        }
         
         public override void Accept(Visitor visitor)
         {
@@ -214,12 +240,22 @@ namespace MiniLanguage
 
     }
 
+    enum VariableType
+    {
+        Any, 
+        Int,
+        Float,
+        String,
+        Bool,
+    }
+
     class VarDeclarationStatement : Statement
     {
         public String Identifier { get; set; }
         public Expression InitialValue { get; set; }
         public bool IsArray;
         public int ArraySize;
+        public VariableType Type;
 
         public override void Accept(Visitor visitor)
         {
@@ -240,14 +276,15 @@ namespace MiniLanguage
 
     class FunctionDeclarationStatement : Statement
     {
-        public String Name;
-        public List<IdentifierExpression> Arguments { get; set; }
-        public BlockStatement Body { get; set; }
+        public readonly String Name;
+        public readonly List<String> Arguments;
+        public readonly BlockStatement Body;
 
-        public FunctionDeclarationStatement()
+        public FunctionDeclarationStatement(String name, List<String> arguments, BlockStatement body)
         {
-            Body = new BlockStatement();
-            Arguments = new List<IdentifierExpression>();
+            Name = name;
+            Arguments = arguments;
+            Body = body;
         }
 
         public override void Accept(Visitor visitor)
@@ -260,9 +297,11 @@ namespace MiniLanguage
 
     class BlockStatement : Statement
     {
-        public BlockStatement()
+        public readonly List<Statement> Statements;
+
+        public BlockStatement(List<Statement> statements)
         {
-            Statements = new List<Statement>();
+            Statements = statements;
         }
         
         public override void Accept(Visitor visitor)
@@ -270,16 +309,27 @@ namespace MiniLanguage
  	        visitor.Visit(this);
         }
 
-        public List<Statement> Statements { get; set; }
     }
 
     class IfStatement : Statement
     {
-        public Expression Condition { get; set; }
-        public Statement Consequent { get; set; }
-        public Statement Alternate { get; set; }
+        public readonly Expression Condition;
+        public readonly Statement ThenBody;
+        public readonly Statement ElseBody;
 
+        public IfStatement(Expression condition, Statement thenBody, Statement elseBody)
+        {
+            Condition = condition;
+            ThenBody = thenBody;
+            ElseBody = elseBody;
+        }
 
+        public IfStatement(Expression condition, Statement thenBody)
+        {
+            Condition = condition;
+            ThenBody = thenBody;
+            ElseBody = null;
+        }
         
         public override void Accept(Visitor visitor)
         {
@@ -289,10 +339,15 @@ namespace MiniLanguage
 
     class WhileStatement : Statement
     {
-        public Expression Condition { get; set; }
-        public Statement Body { get; set; }
+        public readonly Expression Condition;
+        public readonly Statement Body;
 
-        
+        public WhileStatement(Expression condition, Statement body)
+        {
+            Condition = condition;
+            Body = body;
+        }
+
         public override void Accept(Visitor visitor)
         {
  	        visitor.Visit(this);

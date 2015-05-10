@@ -97,16 +97,16 @@ namespace MiniLanguage
             arrayIndexExpression.IndexExpression.Accept(this);
 
         }
-        public override void Visit(NumberExpression number) 
+        public override void Visit(FloatLiteralExpression number) 
         { 
             // always a leaf
         }
-        public override void Visit(BoolExpression expression)
+        public override void Visit(BoolLiteralExpression expression)
         {
             // always a leaf
         }
 
-        public override void Visit(StringExpression expression)
+        public override void Visit(StringLiteralExpression expression)
         {
             // always a leaf
         }
@@ -174,9 +174,9 @@ namespace MiniLanguage
         public override void Visit(IfStatement ifStatement) 
         {
             ifStatement.Condition.Accept(this);
-            ifStatement.Consequent.Accept(this);
-            if(ifStatement.Alternate != null)
-                ifStatement.Alternate.Accept(this);
+            ifStatement.ThenBody.Accept(this);
+            if(ifStatement.ElseBody != null)
+                ifStatement.ElseBody.Accept(this);
         }
         public override void Visit(WhileStatement whileStatement) 
         {
@@ -202,9 +202,9 @@ namespace MiniLanguage
 
             if (funcDeclStatement.Arguments != null)
             {
-                foreach (IdentifierExpression idExpr in funcDeclStatement.Arguments)
+                foreach (String arg in funcDeclStatement.Arguments)
                 {
-                    funcDeclArguments.Add(idExpr.Name);
+                    funcDeclArguments.Add(arg);
                 }
             }
 

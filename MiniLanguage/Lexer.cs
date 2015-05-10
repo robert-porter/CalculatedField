@@ -12,7 +12,7 @@ namespace MiniLanguage
     {
         Plus,
         Minus,
-        Times,
+        Star,
         Slash,
         OpenParen,
         CloseParen,
@@ -32,18 +32,23 @@ namespace MiniLanguage
         OpenSquareBracket,
         CloseSquareBracket,
         Comma,
-        String,
-        Number,
+        StringLiteral,
+        NumberLiteral,
         If,
         Else,
         While,
         True,
         False,
         Var,
+        Int,
+        Float,
+        Bool,
+        String,
         Ref,
         Return,
         Function,
-        Identifier
+        Identifier,
+        Colon,
     }
 
     struct Token
@@ -77,7 +82,7 @@ namespace MiniLanguage
             {
                 {"+", TokenType.Plus},
                 {"-", TokenType.Minus},
-                {"*", TokenType.Times},
+                {"*", TokenType.Star},
                 {"/", TokenType.Slash},
                 {"(", TokenType.OpenParen}, 
                 {")", TokenType.CloseParen},
@@ -97,7 +102,7 @@ namespace MiniLanguage
                 {"!", TokenType.Bang},
                 {"&&", TokenType.And},
                 {"||", TokenType.Or},
-
+                {":", TokenType.Colon},
             };
 
             Keywords = new Dictionary<string, TokenType>
@@ -110,6 +115,10 @@ namespace MiniLanguage
                 {"var", TokenType.Var},
                 {"ref", TokenType.Ref},
                 {"return", TokenType.Return},
+                {"int", TokenType.Int},
+                {"float", TokenType.Float},
+                {"bool", TokenType.Bool},
+                {"string", TokenType.StringLiteral},
                 {"function", TokenType.Function},
             };
         }
@@ -161,7 +170,7 @@ namespace MiniLanguage
             token.Column = Column;
             token.Contents = stringBuilder.ToString(); // strip the quotes off
             token.Line = Line;
-            token.Type = TokenType.String;
+            token.Type = TokenType.StringLiteral;
             Tokens.Add(token);
 
             return true;
@@ -260,7 +269,7 @@ namespace MiniLanguage
             while (Index + length < Characters.Length && Characters[Index + length] >= '0' && Characters[Index + length] <= '9')
                 length++;
 
-            ConsumeAndAddToken(TokenType.Number, length);
+            ConsumeAndAddToken(TokenType.NumberLiteral, length);
             return true;
         }
 

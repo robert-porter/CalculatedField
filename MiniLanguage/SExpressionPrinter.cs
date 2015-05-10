@@ -70,19 +70,16 @@ namespace MiniLanguage
             Write(identifier.Name);
         }
 
-        public override void Visit(NumberExpression number)
+        public override void Visit(FloatLiteralExpression number)
         {
-            Write(number.Value);
+            Write(number.StringValue);
         }
-        public override void Visit(BoolExpression expression)
+        public override void Visit(BoolLiteralExpression expression)
         {
-            if (expression.Value)
-                Write("true");
-            else
-                Write("false");
+            Write(expression.StringValue);
         }
 
-        public override void Visit(StringExpression expression)
+        public override void Visit(StringLiteralExpression expression)
         {
             Write("\"");
             Write(expression.Value);
@@ -193,12 +190,12 @@ namespace MiniLanguage
             IndentLevel++;
             ifStatement.Condition.Accept(this);
             WriteLine();
-            ifStatement.Consequent.Accept(this);
+            ifStatement.ThenBody.Accept(this);
 
-            if (ifStatement.Alternate != null)
+            if (ifStatement.ElseBody != null)
             {
                 WriteLine();
-                ifStatement.Alternate.Accept(this);
+                ifStatement.ElseBody.Accept(this);
             }
             IndentLevel--;
             Write(")");
@@ -245,11 +242,11 @@ namespace MiniLanguage
                 Write(" (");
                 for (int i = 0; i < funcDeclStatement.Arguments.Count - 1; i++)
                 {
-                    funcDeclStatement.Arguments[i].Accept(this);
+                    Write(funcDeclStatement.Arguments[i]);
                     Write(" ");
                 }
 
-                funcDeclStatement.Arguments[funcDeclStatement.Arguments.Count - 1].Accept(this);
+                Write(funcDeclStatement.Arguments[funcDeclStatement.Arguments.Count - 1]);
                 Write(")");
             }
             Write(")");
