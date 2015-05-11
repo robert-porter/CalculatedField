@@ -240,19 +240,17 @@ namespace MiniLanguage
 
             while (Match(TokenType.And))
             {
+
+                Read();
+                right = ParseConditionalExpression();
+
                 if (Match(TokenType.And))
                 {
-                    Read();
-                    right = ParseConditionalExpression();
-
-                    if (Match(TokenType.And))
-                    {
-                        left = new BinaryExpression(BinaryExpression.Operator.And, left, right);
-                    }
-                    else
-                    {
-                        return new BinaryExpression(BinaryExpression.Operator.Add, left, right);
-                    }
+                    left = new BinaryExpression(BinaryExpression.Operator.And, left, right);
+                }
+                else
+                {
+                    return new BinaryExpression(BinaryExpression.Operator.Add, left, right);
                 }
             }
             return left;
@@ -289,16 +287,16 @@ namespace MiniLanguage
             return ParseOr();
         }
 
-        List<String> ParseFunctionDeclarationArguments()
+        List<VarDeclarationStatement> ParseFunctionDeclarationArguments()
         {
             if (Match(TokenType.CloseParen))
                 return null;
 
-            List<String> arguments = new List<String>();
+            List<VarDeclarationStatement> arguments = new List<VarDeclarationStatement>();
             while (!Match(TokenType.CloseParen))
             {
                 if (Match(TokenType.Identifier))
-                    arguments.Add(Read().Contents);
+                    arguments.Add(new VarDeclarationStatement(Read().Contents, ParseTypeAnnotation(), null));
                 else Error("Identifier expected");
 
                 if (!Match(TokenType.CloseParen))
@@ -418,7 +416,7 @@ namespace MiniLanguage
             Read();
 
             String name;
-            List<String> arguments = new List<string>();
+            List<VarDeclarationStatement> arguments = new List<VarDeclarationStatement>();
             List<Statement> statements = new List<Statement>();
 
             if (!Match(TokenType.Identifier))
@@ -448,47 +446,56 @@ namespace MiniLanguage
             if (!MatchAndRead(TokenType.Var))
                 return null;
 
-            VarDeclarationStatement varDeclStatement = new VarDeclarationStatement();
+            String identifier;
+            TypeAnnotation typeAnnotation = null;
+            Expression initialValue = null;
+
             if (!Match(TokenType.Identifier))
                 Error("identifier expected");
-            varDeclStatement.Identifier = Read().Contents;
+            identifier = Read().Contents;
 
-            if (MatchAndRead(TokenType.OpenSquareBracket))
-            {
-                if (!Match(TokenType.NumberLiteral))
-                {
-                    Error("Array size expected");
-                }
-                int arraySize = int.Parse(Read().Contents);
-                Expect(TokenType.CloseSquareBracket);
-                varDeclStatement.IsArray = true;
-                varDeclStatement.ArraySize = arraySize;
-            }
-
-            if(Match(TokenType.Colon))
-            {
-                Read();
-                VariableType variableType = VariableType.Any;
-                if (MatchAndRead(TokenType.Int))
-                    variableType = VariableType.Int;
-                else if (MatchAndRead(TokenType.Float))
-                    variableType = VariableType.Float;
-                else if (MatchAndRead(TokenType.String))
-                    variableType = VariableType.String;
-                else if (MatchAndRead(TokenType.Bool))
-                    variableType = VariableType.Bool;
-
-                varDeclStatement.Type = variableType;
-            }
+            typeAnnotation = ParseTypeAnnotation();
 
             if (Match(TokenType.Equal))
             {
                 Read();
-                varDeclStatement.InitialValue = ParseExpression();
+                initialValue = ParseExpression();
             }
             Expect(TokenType.Semicolon);
 
-            return varDeclStatement;
+            return new VarDeclarationStatement(identifier, typeAnnotation, initialValue);
+        }
+
+        public TypeAnnotation ParseTypeAnnotation()
+        {
+            VariableType variableType = VariableType.Any;
+            bool isArray = false;
+            bool isRef = false;
+
+            if (!Match(TokenType.Colon))
+                return null;
+
+            Read();
+
+            if (MatchAndRead(TokenType.OpenSquareBracket))
+                isArray = true;
+
+            if (MatchAndRead(TokenType.Int))
+                variableType = VariableType.Int;
+            else if (MatchAndRead(TokenType.Float))
+                variableType = VariableType.Float;
+            else if (MatchAndRead(TokenType.String))
+                variableType = VariableType.String;
+            else if (MatchAndRead(TokenType.Bool))
+                variableType = VariableType.Bool;
+
+            if (MatchAndRead(TokenType.Ref))
+                isRef = true;
+            if (isArray)
+                Expect(TokenType.OpenSquareBracket);
+
+            return new TypeAnnotation(variableType, isArray, isRef);
+
         }
 
         public ProgramNode ParseProgram()

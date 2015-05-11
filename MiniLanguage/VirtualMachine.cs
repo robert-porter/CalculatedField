@@ -235,13 +235,6 @@ namespace MiniLanguage
                             Push(GetVar(location));
                             break;
                         }
-                    case Instruction.PushOffsetVariable:
-                        {
-                            int location = (int)instructions[++ip];
-                            int offset = (int) Pop().DoubleVal;
-                            Push(GetVar(location + offset));
-                            break;
-                        }
                     case Instruction.PushReference:
                         {
                             int referenceLocation = (int)instructions[++ip];
@@ -263,31 +256,18 @@ namespace MiniLanguage
                             SetVar(reference.PointerVal, Pop());
                             break;
                         }
-                    case Instruction.StoreOffsetVariable:
-                        {
-                            int location = (int)instructions[++ip];
-                            int offset = (int)Pop().DoubleVal;
-                            SetVar(location + offset, Pop());
-                            break;
-                        }
                     case Instruction.NewVariable:
                         {
                             AddVar();
                             break;
                         }
-                    case Instruction.NewReference:
-                        {
-                            AddVar();
-                            int location = (int)instructions[++ip];
-                            Variables[Variables.Count - 1] = new Value(location);
-                            break;
-                        }
-                    case Instruction.NewArray:
-                        {
-                            int size = (int)instructions[++ip];
-                            AddArray(size);
-                            break;
-                        }
+                    //case Instruction.NewReference:
+                    //    {
+                    //        AddVar();
+                    //        int location = (int)instructions[++ip];
+                    //        Variables[Variables.Count - 1] = new Value(location);
+                    //        break;
+                    //    }
                     case Instruction.JumpOnFalse:
                         {
                             int jumpLocation = (int)instructions[++ip];

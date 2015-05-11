@@ -8,6 +8,7 @@ namespace MiniLanguage
 {
     class ScopeChecker : Visitor
     {
+
         List<HashSet<String>> Identifiers; // acts as a stack of scopes
 
         // used to pass the argumnents to the function body.
@@ -202,9 +203,9 @@ namespace MiniLanguage
 
             if (funcDeclStatement.Arguments != null)
             {
-                foreach (String arg in funcDeclStatement.Arguments)
+                for (int i = 0; i < funcDeclStatement.Arguments.Count; i++ )
                 {
-                    funcDeclArguments.Add(arg);
+                    funcDeclArguments.Add(funcDeclStatement.Arguments[i].Identifier);
                 }
             }
 

@@ -242,11 +242,11 @@ namespace MiniLanguage
                 Write(" (");
                 for (int i = 0; i < funcDeclStatement.Arguments.Count - 1; i++)
                 {
-                    Write(funcDeclStatement.Arguments[i]);
+                    Write(funcDeclStatement.Arguments[i].Identifier);
                     Write(" ");
                 }
 
-                Write(funcDeclStatement.Arguments[funcDeclStatement.Arguments.Count - 1]);
+                Write(funcDeclStatement.Arguments[funcDeclStatement.Arguments.Count - 1].Identifier);
                 Write(")");
             }
             Write(")");

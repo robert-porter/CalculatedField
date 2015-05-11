@@ -14,6 +14,7 @@ namespace MiniLanguage
 @"
 
 function f(x, y) { 
+    var z : int = 20;
     return x+y;
 }
 var q = 10;

@@ -248,15 +248,38 @@ namespace MiniLanguage
         String,
         Bool,
     }
+    class TypeAnnotation : ASTNode
+    {
+        public readonly VariableType VariableType;
+        public readonly bool IsArray;
+        public readonly bool IsRef;
+
+        public TypeAnnotation(VariableType variableType, bool isArray, bool isRef)
+        {
+            VariableType = variableType;
+            IsArray = isArray;
+            IsRef = isRef;
+        }
+
+        public override void Accept(Visitor visitor)
+        {
+            
+        }
+    }
 
     class VarDeclarationStatement : Statement
     {
-        public String Identifier { get; set; }
-        public Expression InitialValue { get; set; }
-        public bool IsArray;
-        public int ArraySize;
-        public VariableType Type;
+        public readonly String Identifier;
+        public readonly TypeAnnotation TypeAnnotation;
+        public readonly Expression InitialValue;
 
+
+        public VarDeclarationStatement(String identifier, TypeAnnotation typeAnnotation, Expression initialValue)
+        {
+            Identifier = identifier;
+            TypeAnnotation = typeAnnotation;
+            InitialValue = initialValue;
+        }
         public override void Accept(Visitor visitor)
         {
  	        visitor.Visit(this);
@@ -277,10 +300,10 @@ namespace MiniLanguage
     class FunctionDeclarationStatement : Statement
     {
         public readonly String Name;
-        public readonly List<String> Arguments;
+        public readonly List<VarDeclarationStatement> Arguments;
         public readonly BlockStatement Body;
 
-        public FunctionDeclarationStatement(String name, List<String> arguments, BlockStatement body)
+        public FunctionDeclarationStatement(String name, List<VarDeclarationStatement> arguments, BlockStatement body)
         {
             Name = name;
             Arguments = arguments;
