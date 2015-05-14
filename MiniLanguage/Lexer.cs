@@ -139,8 +139,7 @@ namespace MiniLanguage
                     tokenRead = TryLexQuote();
                 if (!tokenRead)
                 {
-                    System.Console.WriteLine("Unreconized token");
-                    return;
+                    throw new SyntaxError(Column, Line, "", String.Format("An unexpected token was encountered ({0}).", Characters[Index]));
                 }
             }
         }
@@ -192,7 +191,7 @@ namespace MiniLanguage
             else if (ch == '\r') // TODO: support multiple newlines?
             {
                 Index++;
-                Line = 0;
+                Line++;
                 Column = 0;
                 return true;
             }

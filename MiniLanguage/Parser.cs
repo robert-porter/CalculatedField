@@ -44,15 +44,12 @@ namespace MiniLanguage
         {
             if (MatchAndRead(token))
                 return true;
-            System.Console.WriteLine("Error Expected...");
-            throw new Exception();
-            //return false;
+            throw new SyntaxError(Tokens[Index].Column, Tokens[Index].Line, "", String.Format("Expected {0}, found {1}", token, Tokens[Index].Type));
         }
 
         void Error(String error)
         {
-            System.Console.WriteLine(error);
-            throw new Exception();
+            throw new SyntaxError(Tokens[Index].Column, Tokens[Index].Line, "", error);
         }
 
         List<Expression> ParseFunctionCallArguments()
@@ -134,7 +131,7 @@ namespace MiniLanguage
             }
             else
             {
-                Error("factor: syntax error");
+                Error("Unexpected token.");
             }
 
             if (isUnary)
@@ -164,7 +161,6 @@ namespace MiniLanguage
                 if ((Match(TokenType.Star) || Match(TokenType.Slash)))
                 {
                     left = new BinaryExpression(op, left, right);
-                
                 }
                 else
                 {
@@ -194,7 +190,6 @@ namespace MiniLanguage
                 if (Match(TokenType.Plus) || Match(TokenType.Minus))
                 {
                     left = new BinaryExpression(op, left, right);
-
                 }
                 else
                 {
@@ -313,20 +308,19 @@ namespace MiniLanguage
 
             while (Match(TokenType.Or))
             {
-                if (Match(TokenType.Or))
-                {
-                    Read();
-                    right = ParseAndExpression();
 
-                    if (Match(TokenType.And))
-                    {
-                        left = new BinaryExpression(BinaryExpression.Operator.And, left, right);
-                    }
-                    else
-                    {
-                        return new BinaryExpression(BinaryExpression.Operator.Add, left, right);
-                    }
+                Read();
+                right = ParseAndExpression();
+
+                if (Match(TokenType.And))
+                {
+                    left = new BinaryExpression(BinaryExpression.Operator.And, left, right);
                 }
+                else
+                {
+                    return new BinaryExpression(BinaryExpression.Operator.Add, left, right);
+                }
+
             }
             return left;
         }
@@ -378,9 +372,9 @@ namespace MiniLanguage
             else if(MatchAndRead(TokenType.Ref))
             {
                 if(Index + 3 >= Tokens.Count)
-                    throw new Exception("unexpected token");
+                    Error("unexpected token");
                 if(!(Match(TokenType.Identifier) && Match(TokenType.Equal, 1) && Match(TokenType.Identifier)))
-                    throw new Exception("unexpected token");
+                    Error("unexpected token");
                 
                 RefDeclarationStatement refDeclarationStatement = new RefDeclarationStatement();
                 
@@ -420,7 +414,7 @@ namespace MiniLanguage
             List<Statement> statements = new List<Statement>();
 
             if (!Match(TokenType.Identifier))
-                throw new Exception("Identifier expected");
+                Error("Identifier expected");
             name = Read().Contents;
 
             Expect(TokenType.OpenParen);
@@ -469,7 +463,8 @@ namespace MiniLanguage
         public TypeAnnotation ParseTypeAnnotation()
         {
             VariableType variableType = VariableType.Any;
-            bool isArray = false;
+            // arrayDimensions works as such: [T] makes arrayDimensions = 1, [[T]] makes arrayDimensions = 2.
+            int arrayDimensions = 0; 
             bool isRef = false;
 
             if (!Match(TokenType.Colon))
@@ -477,8 +472,8 @@ namespace MiniLanguage
 
             Read();
 
-            if (MatchAndRead(TokenType.OpenSquareBracket))
-                isArray = true;
+            while((MatchAndRead(TokenType.OpenSquareBracket)))
+                arrayDimensions++;
 
             if (MatchAndRead(TokenType.Int))
                 variableType = VariableType.Int;
@@ -491,11 +486,11 @@ namespace MiniLanguage
 
             if (MatchAndRead(TokenType.Ref))
                 isRef = true;
-            if (isArray)
+
+            for (int i = 0; i < arrayDimensions; i++ )
                 Expect(TokenType.OpenSquareBracket);
 
-            return new TypeAnnotation(variableType, isArray, isRef);
-
+            return new TypeAnnotation(variableType, arrayDimensions, isRef);
         }
 
         public ProgramNode ParseProgram()
@@ -517,7 +512,7 @@ namespace MiniLanguage
                 }
                 else
                 {
-                    throw new Exception("Unexpected token");
+                    Error("Unexpected token");
                 }
             }
             return program;

@@ -251,13 +251,16 @@ namespace MiniLanguage
     class TypeAnnotation : ASTNode
     {
         public readonly VariableType VariableType;
-        public readonly bool IsArray;
+        
+        // ArrayDimensions works as such, [T] makes ArrayDimensions = 1, [[T]] makes ArrayDimensions = 2.
+        // A non array variable will have a dimension of 0
+        public readonly int ArrayDimensions; 
         public readonly bool IsRef;
 
-        public TypeAnnotation(VariableType variableType, bool isArray, bool isRef)
+        public TypeAnnotation(VariableType variableType, int arrayDimensions, bool isRef)
         {
             VariableType = variableType;
-            IsArray = isArray;
+            ArrayDimensions = arrayDimensions;
             IsRef = isRef;
         }
 
@@ -265,6 +268,7 @@ namespace MiniLanguage
         {
             
         }
+
     }
 
     class VarDeclarationStatement : Statement
@@ -277,9 +281,18 @@ namespace MiniLanguage
         public VarDeclarationStatement(String identifier, TypeAnnotation typeAnnotation, Expression initialValue)
         {
             Identifier = identifier;
-            TypeAnnotation = typeAnnotation;
+            if (typeAnnotation == null)
+            {
+                TypeAnnotation = new TypeAnnotation(VariableType.Any, 0, false);
+            }
+            else
+            {
+                TypeAnnotation = typeAnnotation;
+            }
             InitialValue = initialValue;
         }
+
+
         public override void Accept(Visitor visitor)
         {
  	        visitor.Visit(this);

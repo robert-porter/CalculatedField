@@ -10,33 +10,39 @@ namespace MiniLanguage
     {
         static void Main(string[] args)
         {
-            Lexer lexer = new Lexer(
-@"
+            String program = @"
 
-function f(x, y) { 
+function f(x : int, y) { 
     var z : int = 20;
-    return x+y;
+    return x+z;
 }
 var q = 10;
 var v = 2*(3+3)*5 + 2 * 3;
-"
-                );
+";
+
+            try
+            {
+                Lexer lexer = new Lexer(program);
 
 
-            lexer.Lex();
+                lexer.Lex();
 
-            Parser parser = new Parser(lexer.Tokens);
+                Parser parser = new Parser(lexer.Tokens);
 
-            ProgramNode node = parser.ParseProgram();
-            ScopeChecker scopeChecker = new ScopeChecker();
-            node.Accept(scopeChecker);
-            Compiler compiler = new Compiler();
-            compiler.Compile(node);
-            VirtualMachine machine = new VirtualMachine();
-            machine.Run(compiler.Instructions, compiler.Constants, compiler.StartAddress);
+                ProgramNode node = parser.ParseProgram();
+                TypeChecker scopeChecker = new TypeChecker();
+                node.Accept(scopeChecker);
+                Compiler compiler = new Compiler();
+                compiler.Compile(node);
+                VirtualMachine machine = new VirtualMachine();
+                machine.Run(compiler.Instructions, compiler.Constants, compiler.StartAddress);
 
-            Console.WriteLine(machine.GetVar(1).DoubleVal);
-
+                Console.WriteLine(machine.GetVar(1).DoubleVal);
+            }
+            catch (SyntaxError syntaxError)
+            {
+                Console.WriteLine(syntaxError.Message);
+            }
             Console.WriteLine("Press any key to continue...");
             System.Console.ReadKey();
         }
