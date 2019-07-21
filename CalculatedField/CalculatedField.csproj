@@ -7,8 +7,8 @@
     <ProjectGuid>{24ECDCA0-809A-479F-9A39-337DE7B25ECF}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MiniLanguage</RootNamespace>
-    <AssemblyName>MiniLanguage</AssemblyName>
+    <RootNamespace>CalculatedField</RootNamespace>
+    <AssemblyName>CalculatedField</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -41,25 +41,28 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AST.cs" />
+    <Compile Include="Engine.cs" />
+    <Compile Include="CompiledScript.cs" />
+    <Compile Include="Expression.cs" />
     <Compile Include="Compiler.cs" />
-    <Compile Include="CompilerError.cs" />
-    <Compile Include="Environment.cs" />
+    <Compile Include="FileWatcher.cs" />
+    <Compile Include="Function.cs" />
+    <Compile Include="ScriptFunctions.cs" />
+    <Compile Include="ScriptError.cs" />
     <Compile Include="Instruction.cs" />
     <Compile Include="Lexer.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Parser.cs" />
-    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SyntaxError.cs" />
-    <Compile Include="TypeChecker.cs" />
-    <Compile Include="SExpressionPrinter.cs" />
-    <Compile Include="Value.cs" />
+    <Compile Include="Resolver.cs" />
+    <Compile Include="ScriptType.cs" />
+    <Compile Include="ScriptValue.cs" />
+    <Compile Include="ScriptValueOperators.cs" />
     <Compile Include="VirtualMachine.cs" />
-    <Compile Include="Visitor.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="test.script" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

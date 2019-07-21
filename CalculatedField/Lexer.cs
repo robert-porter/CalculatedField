@@ -1,82 +1,77 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
-namespace MiniLanguage
+namespace CalculatedField
 {
-
     enum TokenType
     {
-        Plus,
+        Plus = 1000,
         Minus,
         Star,
         Slash,
+        Percent,
+        EqualEqual,
+        LessGreater,
+        Less,
+        LessEqual,
+        Greater,
+        GreaterEqual,
+        Equal,
         OpenParen,
         CloseParen,
-        Bang,
-        And,
-        Or,
-        DoubleEqual,
-        NotEqual,
-        Less,
-        LessOrEqual,
-        Greater,
-        GreaterOrEqual,
-        Equal,
-        Semicolon,
-        OpenCurlyBrace,
-        CloseCurlyBrace,
-        OpenSquareBracket,
-        CloseSquareBracket,
+        Newline,
         Comma,
         StringLiteral,
         NumberLiteral,
-        If,
-        Else,
-        While,
+        IntegerLiteral,
         True,
         False,
-        Var,
-        Int,
-        Float,
-        Bool,
-        String,
-        Ref,
-        Return,
-        Function,
         Identifier,
-        Colon,
+        Not,
+        And,
+        Or,
+        If,
+        Then,
+        Else,
+        End,
+        Null,
+        EOF
     }
 
-    struct Token
+    class Token
     {
-        public String Contents { get; set; }
+        public string Contents { get; set; }
         public TokenType Type { get; set; }
+        public int Index { get; set; }
         public int Line { get; set; }
         public int Column { get; set; }
     }
 
+    
+
+
+
     class Lexer
     {
-        Dictionary<String, TokenType> Operators;
-        Dictionary<String, TokenType> Keywords;
-        String SourceCode;
+        Dictionary<string, TokenType> Operators;
+        Dictionary<string, TokenType> Keywords;
+        string SourceCode;
         char[] Characters;
         int Index;
         int Line;
         int Column;
         public List<Token> Tokens;
+        public List<ScriptError> Errors;
 
-
-        public Lexer(String sourceCode)
+        public Lexer(string sourceCode)
         {
             SourceCode = sourceCode;
             Characters = SourceCode.ToCharArray();
             Index = 0;
             Tokens = new List<Token>();
+            Errors = new List<ScriptError>();
 
             Operators = new Dictionary<string, TokenType> 
             {
@@ -84,46 +79,37 @@ namespace MiniLanguage
                 {"-", TokenType.Minus},
                 {"*", TokenType.Star},
                 {"/", TokenType.Slash},
+                {"%", TokenType.Percent}, 
                 {"(", TokenType.OpenParen}, 
                 {")", TokenType.CloseParen},
-                {";", TokenType.Semicolon},
-                {"==", TokenType.DoubleEqual},
-                {"!=", TokenType.NotEqual},
-                {"<=", TokenType.LessOrEqual},
-                {">=", TokenType.GreaterOrEqual},
+                {"==", TokenType.EqualEqual},
+                {"<>", TokenType.LessGreater},
+                {"<=", TokenType.LessEqual},
+                {">=", TokenType.GreaterEqual},
                 {"<", TokenType.Less},
                 {">", TokenType.Greater},
                 {"=", TokenType.Equal},
                 {",", TokenType.Comma},
-                {"{", TokenType.OpenCurlyBrace},
-                {"}", TokenType.CloseCurlyBrace},
-                {"[", TokenType.OpenSquareBracket},
-                {"]", TokenType.CloseSquareBracket},
-                {"!", TokenType.Bang},
-                {"&&", TokenType.And},
-                {"||", TokenType.Or},
-                {":", TokenType.Colon},
             };
-
+            
             Keywords = new Dictionary<string, TokenType>
             {
                 {"true", TokenType.True},
                 {"false", TokenType.False},
                 {"if", TokenType.If},
                 {"else", TokenType.Else},
-                {"while", TokenType.While},
-                {"var", TokenType.Var},
-                {"ref", TokenType.Ref},
-                {"return", TokenType.Return},
-                {"int", TokenType.Int},
-                {"float", TokenType.Float},
-                {"bool", TokenType.Bool},
-                {"string", TokenType.StringLiteral},
-                {"function", TokenType.Function},
+                {"and", TokenType.And },
+                {"or", TokenType.Or },
+                {"not", TokenType.Not },
+                {"null", TokenType.Null },
+                {"then", TokenType.Then },
+                {"end", TokenType.End }
             };
+
+            Lex();
         }
 
-        public void Lex()
+        void Lex()
         {
             while (Index < SourceCode.Length)
             {
@@ -139,9 +125,18 @@ namespace MiniLanguage
                     tokenRead = TryLexQuote();
                 if (!tokenRead)
                 {
-                    throw new SyntaxError(Column, Line, "", String.Format("An unexpected token was encountered ({0}).", Characters[Index]));
+                    Errors.Add(new ScriptError(Column, Line, string.Format("Invalid character ({0}).", Characters[Index])));
+                    Index++;
                 }
             }
+
+            Tokens.Add(new Token
+            {
+                Column = Column, 
+                Line = Line, 
+                Contents = "", 
+                Type = TokenType.EOF
+            });
         }
 
         public bool TryLexQuote()
@@ -164,16 +159,15 @@ namespace MiniLanguage
             }
 
             Index++; // eat close quote
-
             Token token = new Token();
             token.Column = Column;
-            token.Contents = stringBuilder.ToString(); // strip the quotes off
+            token.Contents = stringBuilder.ToString();
             token.Line = Line;
             token.Type = TokenType.StringLiteral;
             Tokens.Add(token);
-
             return true;
         }
+
         public bool TryConsumeWhitespace()
         {
 
@@ -188,11 +182,18 @@ namespace MiniLanguage
                 Index++;
                 return true;
             }
-            else if (ch == '\r') // TODO: support multiple newlines?
+            else if (ch == '\r') 
             {
+                Token token = new Token();
+                token.Column = Column;
+                token.Line = Line;
+                token.Contents = "\r";
+                token.Type = TokenType.Newline;
                 Index++;
                 Line++;
                 Column = 0;
+
+                Tokens.Add(token);
                 return true;
             }
             else if (ch == '\n')
@@ -209,7 +210,7 @@ namespace MiniLanguage
             Token token = new Token();
             token.Line = Line;
             token.Column = Column;
-            token.Contents = new String(Characters, Index, length);
+            token.Contents = new string(Characters, Index, length);
             token.Type = type;
             Index += length;
             Column += length;
@@ -248,14 +249,11 @@ namespace MiniLanguage
 
         public bool TryLexNumber()
         {
-            // Any minus sign will be lexed seperately.
-
             int length = 0;
             while (Index + length < Characters.Length && Characters[Index + length] >= '0' && Characters[Index + length] <= '9')
                 length++;
             if (length == 0)
                 return false;
-
 
             if (Index + length < Characters.Length && Characters[Index + length] == '.')
             {
@@ -274,7 +272,6 @@ namespace MiniLanguage
 
         public bool TryLexOperator()
         {
-
             if (Index >= Characters.Length)
                 return false;
 
@@ -296,9 +293,97 @@ namespace MiniLanguage
                     return true;
                 }
             }
-
             return false;
+        }
 
+
+        public class TokenDefinition
+        {
+            public TokenDefinition() { }
+            public TokenDefinition(string regEx, TokenType type)
+            {
+                Regex = new Regex(regEx);
+                Type = type;
+            }
+            public bool IsIgnored { get; set; }
+            public Regex Regex { get; set; }
+            public TokenType Type { get; set; }
+        }
+
+        public List<TokenDefinition> TokenDefinitions;
+        
+        void CreateTokenDefinitions()
+        {
+            TokenDefinitions.Add(new TokenDefinition("^if", TokenType.If));
+        }
+
+        public IEnumerable<Token> Tokenize(string source)
+        {
+            var endOfLineRegex = new Regex("\n");
+            int currentIndex = 0;
+            int currentLine = 1;
+            int currentColumn = 0;
+
+            while (currentIndex < source.Length)
+            {
+                TokenDefinition matchedDefinition = null;
+                int matchLength = 0;
+
+                foreach (var rule in TokenDefinitions)
+                {
+                    var match = rule.Regex.Match(source, currentIndex);
+
+                    if (match.Success && (match.Index - currentIndex) == 0)
+                    {
+                        matchedDefinition = rule;
+                        matchLength = match.Length;
+                        break;
+                    }
+                }
+
+                if (matchedDefinition == null)
+                {
+                    throw new Exception(string.Format("Unrecognized symbol '{0}' at index {1} (line {2}, column {3}).", source[currentIndex], currentIndex, currentLine, currentColumn));
+                }
+                else
+                {
+                    var value = source.Substring(currentIndex, matchLength);
+
+                    if (!matchedDefinition.IsIgnored)
+                    {
+                        var token = new Token
+                        {
+                            Type = matchedDefinition.Type,
+                            Contents = value,
+                            Index = currentIndex,
+                            Line = currentLine,
+                            Column = currentColumn
+                        };
+                        yield return token;
+                    }
+                    var endOfLineMatch = endOfLineRegex.Match(value);
+                    if (endOfLineMatch.Success)
+                    {
+                        currentLine += 1;
+                        currentColumn = value.Length - (endOfLineMatch.Index + endOfLineMatch.Length);
+                    }
+                    else
+                    {
+                        currentColumn += matchLength;
+                    }
+
+                    currentIndex += matchLength;
+                }
+            }
+
+            yield return new Token
+            {
+                Type = TokenType.EOF,
+                Contents = "",
+                Index = currentIndex,
+                Line = currentLine,
+                Column = currentColumn
+            };
         }
     }
 }
