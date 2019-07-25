@@ -3,30 +3,20 @@ using System.Linq;
 
 namespace CalculatedField
 {
-    class VirtualMachine
+    static class VirtualMachine
     {
-        CompiledScript CompiledScript;
-        public VirtualMachine(CompiledScript compiledScript)
-        {
-            CompiledScript = compiledScript;
-        }
-
-        public ScriptValue Run()
+        public static ScriptValue Run(CompiledScript compiledScript, List<ScriptValue> fieldValues)
         {
             var ip = 0;
             var stack = new Stack<ScriptValue>();
             var variables = new List<ScriptValue>();
-            for (var i = 0; i < CompiledScript.Variables.Count; i++) {
+            for (var i = 0; i < compiledScript.NumVariables; i++) {
                 variables.Add(new ScriptValue());
             }
-            var instructions = CompiledScript.Instructions;
-            var constants = CompiledScript.Constants;
-            var functions = new List<Function>();
-            for(var i =0; i < CompiledScript.Functions.Count; i++)
-            {
-                var function = ScriptFunctions.GetByName(CompiledScript.Functions[i]).FirstOrDefault();
-                functions.Add(function);
-            }
+            var instructions = compiledScript.Instructions;
+            var constants = compiledScript.Constants;
+            var functions = compiledScript.Functions;
+            var fields = fieldValues;
 
             while (ip < instructions.Count)
             {
@@ -35,112 +25,123 @@ namespace CalculatedField
                 {
                     case Instruction.Add:
                         {
-                            ScriptValue right = Pop(); 
-                            ScriptValue left = Pop();
+                            var right = Pop(); 
+                            var left = Pop();
                             Push(left + right);
                             break;
                         }
                     case Instruction.Subtract:
                         {
-                            ScriptValue right = Pop();
-                            ScriptValue left = Pop();
+                            var right = Pop();
+                            var left = Pop();
                             Push(left - right);
                             break;
                         }
-
                     case Instruction.Multiply:
                         {
-                            ScriptValue right = Pop();
-                            ScriptValue left = Pop();
+                            var right = Pop();
+                            var left = Pop();
                             Push(left * right);
                             break;
                         }
                     case Instruction.Divide:
                         {
-                            ScriptValue right = Pop();
-                            ScriptValue left = Pop();
+                            var right = Pop();
+                            var left = Pop();
                             Push(left / right);
                             break;
                         }
                     case Instruction.Negate:
                         {
-                            ScriptValue value = Pop();
+                            var value = Pop();
                             Push(-value);
                             break;
                         }
                     case Instruction.Less:
                         {
-                            ScriptValue right = Pop();
-                            ScriptValue left = Pop();
+                            var right = Pop();
+                            var left = Pop();
                             Push(left < right);
                             break;
                         }
                     case Instruction.LessOrEqual:
                         {
-                            ScriptValue right = Pop();
-                            ScriptValue left = Pop();
+                            var right = Pop();
+                            var left = Pop();
                             Push(left <= right);
                             break;
                         }
                     case Instruction.Greater:
                         {
-                            ScriptValue right = Pop();
-                            ScriptValue left = Pop();
+                            var right = Pop();
+                            var left = Pop();
                             Push(left > right);
                             break;
                         }
                     case Instruction.GreaterOrEqual:
                         {
-                            ScriptValue right = Pop();
-                            ScriptValue left = Pop();
+                            var right = Pop();
+                            var left = Pop();
                             Push(left >= right);
                             break;
                         }
                     case Instruction.Equal: 
                         {
-                            ScriptValue right = Pop();
-                            ScriptValue left = Pop();
+                            var right = Pop();
+                            var left = Pop();
                             Push(left == right);
                             break;
                         }
                     case Instruction.NotEqual:
                         {
-                            ScriptValue right = Pop();
-                            ScriptValue left = Pop();
+                            var right = Pop();
+                            var left = Pop();
                             Push(left != right);
                             break;
                         }
                     case Instruction.And:
                         {
-                            ScriptValue right = Pop();
-                            ScriptValue left = Pop();
+                            var right = Pop();
+                            var left = Pop();
                             Push(left & right);
                             break;
                         }
                     case Instruction.Or:
                         {
-                            ScriptValue right = Pop();
-                            ScriptValue left = Pop();
-                            Push(left & right);
+                            var right = Pop();
+                            var left = Pop();
+                            Push(left | right);
                             break;
                         }
                     case Instruction.Not:
                         {
-                            ScriptValue value = Pop();
+                            var value = Pop();
                             Push(!value);
+                            break;
+                        }
+                    case Instruction.Pop:
+                        {
+                            Pop();
                             break;
                         }
                     case Instruction.PushConstant:
                         {
                             int location = ReadNextInstruction();
-                            ScriptValue value = constants[location];
+                            var value = constants[location];
                             Push(value);
                             break;
                         }
                     case Instruction.PushVariable:
                         {
                             int location = ReadNextInstruction();
-                            var value = Read(location);
+                            var value = variables[location];
+                            Push(value);
+                            break;
+                        }
+                    case Instruction.PushField:
+                        {
+                            int location = ReadNextInstruction();
+                            var value = fields[location];
                             Push(value);
                             break;
                         }
@@ -148,13 +149,13 @@ namespace CalculatedField
                         {
                             int location = ReadNextInstruction();
                             var value = Pop();
-                            Store(location, value);
+                            variables[location] = value;
                             break;
                         }
                     case Instruction.JumpOnFalse:
                         {
                             int jumpLocation = ReadNextInstruction();
-                            ScriptValue value = Pop();
+                            var value = Pop();
                             if (!value.BoolValue)
                                 ip = (int)jumpLocation;
                             continue;
@@ -201,17 +202,6 @@ namespace CalculatedField
             {
                 return (int)instructions[++ip];
             }
-
-            void Store(int location, ScriptValue value)
-            {
-                variables[location] = value;
-            }
-
-            ScriptValue Read(int location)
-            {
-                return variables[location];
-            }
-
 
         }
     }

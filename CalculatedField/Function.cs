@@ -5,19 +5,14 @@ using System.Reflection;
 
 namespace CalculatedField
 {
-    class Function
+    public class Function
     {
-        public Function(Type type, MethodInfo methodInfo)
+        public Function(MethodInfo methodInfo)
         {
             MethodInfo = methodInfo;
             Name = MethodInfo.Name;
-            ArgumentTypes = MethodInfo.GetParameters().Select(parameterInfo => CSharpTypeToScriptType(parameterInfo.ParameterType)).ToList();
-            ReturnType = CSharpTypeToScriptType(MethodInfo.ReturnType);
-        }
-
-        public ScriptValue Call(ScriptValue[] arguments)
-        {
-            return new ScriptValue(ReturnType, MethodInfo.Invoke(null, arguments.Select(arg => arg.Value).ToArray()));
+            ArgumentTypes = MethodInfo.GetParameters().Select(parameterInfo => ScriptValue.CSharpTypeToScriptType(parameterInfo.ParameterType)).ToList();
+            ReturnType = ScriptValue.CSharpTypeToScriptType(MethodInfo.ReturnType);
         }
 
         public string Name { get; protected set; }
@@ -25,20 +20,10 @@ namespace CalculatedField
         public ScriptType ReturnType { get; protected set; }
         public MethodInfo MethodInfo { get; protected set; }
 
-
-        ScriptType CSharpTypeToScriptType(Type type)
+        public ScriptValue Call(ScriptValue[] arguments)
         {
-            if (type == typeof(long?))
-                return ScriptType.Integer;
-            if (type == typeof(decimal?))
-                return ScriptType.Decimal;
-            if (type == typeof(string))
-                return ScriptType.String;
-            if (type == typeof(bool?))
-                return ScriptType.Bool;
-            if (type == typeof(DateTime?))
-                return ScriptType.DateTime;
-            return ScriptType.Null;
+            return new ScriptValue(ReturnType, MethodInfo.Invoke(null, arguments.Select(arg => arg.Value).ToArray()));
         }
+
     }
 }

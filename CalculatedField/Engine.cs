@@ -1,40 +1,78 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace CalculatedField
 {
-    class Engine
+    public class Engine
     {
-        public Engine(string script)
+        public void Calculate(List<Field> fields, List<Dictionary<Guid, object>> records)
         {
-            Script = script;
-            CompilerErrors = new List<ScriptError>();
+            var compiledScripts = fields
+                .Where(field => !string.IsNullOrWhiteSpace(field.Script))
+                .Select(field => Compile(field, fields))
+                .Where(compiledScript => compiledScript != null);
+
+            //sort 
+
+            foreach(var compiledScript in compiledScripts)
+            {
+                foreach(var record in records)
+                {
+                    Calculate(compiledScript, record);
+                }
+            }
         }
 
-        public bool Compile()
+        public void Calculate(CompiledScript compiledScript, Dictionary<Guid, object> record)
         {
-            CompilerErrors.Clear();
-            var lexer = new Lexer(Script);
-            CompilerErrors.AddRange(lexer.Errors);
-            Parser parser = new Parser(lexer.Tokens);
-            var expression = parser.Parse();
-            CompilerErrors.AddRange(parser.Errors);
-            var codeGenerator = new Compiler();
-            var compiledScript = codeGenerator.Compile(expression);
-            Machine = new VirtualMachine(compiledScript);
-            return CompilerErrors.Count() == 0;
+            if (compiledScript != null)
+            {
+                List<ScriptValue> fieldValues = compiledScript.Fields.Select(field => new ScriptValue(record[field.FieldId])).ToList();
+                var value = VirtualMachine.Run(compiledScript, fieldValues);
+                if(value.Type != ScriptType.Null)
+                    record[compiledScript.Field.FieldId] = value.Value;
+            }
         }
 
-        public ScriptValue Run(Dictionary<string, ScriptValue> record)
+        public ScriptValue CalculateValue(CompiledScript compiledScript, Dictionary<Guid, object> record)
         {
-            if (Machine == null)
-                Compile();
-            return Machine.Run();            
+            if (compiledScript != null)
+            {
+                List<ScriptValue> fieldValues = compiledScript.Fields.Select(field => new ScriptValue(record[field.FieldId])).ToList();
+                var value = VirtualMachine.Run(compiledScript, fieldValues);
+                return value;
+            }
+            return new ScriptValue();
         }
 
-        VirtualMachine Machine;
-        public List<ScriptError> CompilerErrors { get; private set; }
-        //List<ScriptError> RuntimeErrors;
-        string Script;
+        public CompiledScript Compile(Field field, List<Field> fields)
+        {
+
+            var tokenizer = new Tokenizer();
+            tokenizer.CreateTokenDefinitions();
+            var tokenizerResult = tokenizer.Tokenize(field.Script);
+            var tokens = Tokenizer.FixNewlines(tokenizerResult);
+            Parser parser = new Parser();
+            var tokenStream = new TokenStream(tokens.ToList());
+            var expression = parser.Parse(tokenStream);
+            Symbols symbols = new Symbols(field, fields);
+            var resolver = new Resolver();
+            resolver.ResolveProgram(expression, symbols);
+            var codeGenerator = new CodeGenerator();
+            var instructions = codeGenerator.GenerateProgram(expression);
+            var compiledScript = new CompiledScript
+            {
+                Functions = symbols.GetScriptFunctions(),
+                Constants = symbols.GetScriptConstants(),
+                Fields = symbols.GetScriptFields(),
+                NumVariables = symbols.ScriptVariablesCount,
+                Instructions = instructions,
+                Field = field
+            };
+
+            return compiledScript;
+
+        }
     }
 }

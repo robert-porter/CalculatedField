@@ -2,11 +2,13 @@
 
 namespace CalculatedField
 {
-    class CompiledScript
+    public class CompiledScript
     {
         public List<Instruction> Instructions { get; set; }
         public List<ScriptValue> Constants { get; set; }
-        public List<string> Functions { get; set; }
-        public List<string> Variables { get; set; }
+        public List<Function> Functions { get; set; }
+        public List<Field> Fields { get; set; }
+        public int NumVariables { get; set; }
+        public Field Field { get; set; }
     }
 }

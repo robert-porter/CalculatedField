@@ -1,13 +1,13 @@
 ﻿namespace CalculatedField
 {
-    enum ScriptType
+    public enum ScriptType
     {
-        Error,
         Null,
         Decimal,
         Integer,
         String,
         DateTime,
+        TimeSpan,
         Bool
     }
 }

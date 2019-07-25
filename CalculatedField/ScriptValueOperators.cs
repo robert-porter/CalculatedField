@@ -1,6 +1,6 @@
 ﻿namespace CalculatedField
 {
-    partial class ScriptValue
+    public partial class ScriptValue
     {
         public static ScriptValue operator -(ScriptValue right)
         {
@@ -107,6 +107,8 @@
                 return new ScriptValue(left.IntegerValue < right.DecimalValue);
             if (left.Type == ScriptType.Decimal && right.Type == ScriptType.Decimal)
                 return new ScriptValue(left.DecimalValue < right.DecimalValue);
+            if (left.Type == ScriptType.String && right.Type == ScriptType.String)
+                return new ScriptValue(left.StringValue.CompareTo(right.StringValue) < 0);
             return new ScriptValue();
         }
 
@@ -120,6 +122,8 @@
                 return new ScriptValue(left.IntegerValue > right.DecimalValue);
             if (left.Type == ScriptType.Decimal && right.Type == ScriptType.Decimal)
                 return new ScriptValue(left.DecimalValue > right.DecimalValue);
+            if (left.Type == ScriptType.String && right.Type == ScriptType.String)
+                return new ScriptValue(left.StringValue.CompareTo(right.StringValue) > 0);
             return new ScriptValue();
         }
 
@@ -133,6 +137,8 @@
                 return new ScriptValue(left.IntegerValue <= right.DecimalValue);
             if (left.Type == ScriptType.Decimal && right.Type == ScriptType.Decimal)
                 return new ScriptValue(left.DecimalValue <= right.DecimalValue);
+            if (left.Type == ScriptType.String && right.Type == ScriptType.String)
+                return new ScriptValue(left.StringValue.CompareTo(right.StringValue) <= 0);
             return new ScriptValue();
         }
 
@@ -146,6 +152,8 @@
                 return new ScriptValue(left.IntegerValue >= right.DecimalValue);
             if (left.Type == ScriptType.Decimal && right.Type == ScriptType.Decimal)
                 return new ScriptValue(left.DecimalValue >= right.DecimalValue);
+            if (left.Type == ScriptType.String && right.Type == ScriptType.String)
+                return new ScriptValue(left.StringValue.CompareTo(right.StringValue) >= 0);
             return new ScriptValue();
         }
 
@@ -158,7 +166,6 @@
                 case ScriptType.DateTime: return new ScriptValue(left.DateTimeValue == right.DateTimeValue);
                 case ScriptType.Decimal: return new ScriptValue(left.DecimalValue == right.DecimalValue);
                 case ScriptType.String: return new ScriptValue(left.StringValue == right.StringValue);
-                case ScriptType.Error: return new ScriptValue(true);
                 case ScriptType.Null: return new ScriptValue(true);
             }
             return new ScriptValue();

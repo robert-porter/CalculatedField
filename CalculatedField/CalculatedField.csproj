@@ -44,13 +44,15 @@
     <Compile Include="Engine.cs" />
     <Compile Include="CompiledScript.cs" />
     <Compile Include="Expression.cs" />
-    <Compile Include="Compiler.cs" />
+    <Compile Include="CodeGenerator.cs" />
+    <Compile Include="Field.cs" />
     <Compile Include="FileWatcher.cs" />
     <Compile Include="Function.cs" />
-    <Compile Include="ScriptFunctions.cs" />
+    <Compile Include="Runtime.cs" />
     <Compile Include="ScriptError.cs" />
     <Compile Include="Instruction.cs" />
-    <Compile Include="Lexer.cs" />
+    <Compile Include="Symbols.cs" />
+    <Compile Include="Tokenizer.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Parser.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -58,6 +60,8 @@
     <Compile Include="ScriptType.cs" />
     <Compile Include="ScriptValue.cs" />
     <Compile Include="ScriptValueOperators.cs" />
+    <Compile Include="TokenStream.cs" />
+    <Compile Include="Variable.cs" />
     <Compile Include="VirtualMachine.cs" />
   </ItemGroup>
   <ItemGroup>

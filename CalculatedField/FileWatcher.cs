@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Permissions;
 
@@ -63,20 +64,41 @@ namespace CalculatedField
         }
         static void RunScript(string path)
         {
+            List<Field> fields = new List<Field>();
+            var fx = new Field
+            {
+                Name = "<<a>>",
+                FieldId = Guid.NewGuid(),
+                Script = null,
+                Type = ScriptType.Decimal
+            };
+            var fy = new Field
+            {
+                Name = "<<y>>",
+                FieldId = Guid.NewGuid(),
+                Script = "<<a>> + 2",
+                Type = ScriptType.Decimal
+            };
+
+            fields.Add(fx);
+            fields.Add(fy);
+
+            var dataList = new List<Dictionary<Guid, object>>();
+            var data1 = new Dictionary<Guid, object>();
+            data1[fx.FieldId] = 1;
+            data1[fy.FieldId] = "one";
+            var data2 = new Dictionary<Guid, object>();
+            data2[fx.FieldId] = 2;
+            data2[fy.FieldId] = "two";
+
+            dataList.Add(data1);
+            dataList.Add(data2);
+
             string script = File.ReadAllText(path);
-            var engine = new Engine(script);
-            if(engine.CompilerErrors.Count > 0)
-            {
-                foreach(var error in engine.CompilerErrors)
-                {
-                    Console.WriteLine(error.Message);
-                }
-            }
-            else
-            {
-                var value = engine.Run(null);
-                Console.WriteLine(value.Value);
-            }
+            var engine = new Engine();
+            //var compiled = engine.Compile(fx, fields);
+            engine.Calculate(fields, dataList);
+            Console.WriteLine(dataList[0][fy.FieldId]);
         }
     }
 }

@@ -50,68 +50,32 @@ namespace CalculatedField
         {
             Name = name;
         }
-
     }
 
-    class DecimalLiteralExpression : Expression
+    class FieldExpression : Expression
     {
-        public readonly string StringValue;
-        public readonly decimal DecimalValue;
+        public readonly string Name;
+        public int Location { get; set; }
 
-        public DecimalLiteralExpression(string value)
+        public FieldExpression(string name)
         {
-            StringValue = value;
-            DecimalValue = decimal.Parse(StringValue);
+            Name = name;
         }
-        
     }
 
-    class BoolLiteralExpression : Expression
+    class LiteralExpression : Expression
     {
-        public readonly string StringValue;
-        public readonly bool BoolValue;
+        public readonly ScriptType Type;
+        public readonly string Value; 
+        public int Location { get; set; }
 
-        public BoolLiteralExpression(string value)
-        {
-            StringValue = value;
-            BoolValue = bool.Parse(StringValue); 
-        }
-
-    }
-
-    class StringLiteralExpression : Expression
-    {
-        public readonly string Value;
-        public StringLiteralExpression(string value)
+        public LiteralExpression(string value, ScriptType type)
         {
             Value = value;
+            Type = type;
         }
-    }
 
-    class IntegerLiteralExpression : Expression
-    {
-        public readonly string Value;
-        public readonly long IntegerValue;
-        public IntegerLiteralExpression(string value)
-        {
-            Value = value;
-            IntegerValue = int.Parse(value);
-        }
-    }
-
-    class DateTimeLiteralExpression : Expression
-    {
-        public readonly string Value;
-        public readonly DateTime DateTimeValue;
-        public DateTimeLiteralExpression(string value)
-        {
-            Value = value;
-            DateTimeValue = DateTime.Parse(value);
-        }
-    }
-
-    class NullLiteralExpression : Expression
-    {
+        public ScriptValue ScriptValue => ScriptValue.Parse(Value, Type); 
     }
 
     class BinaryExpression : Expression
@@ -140,13 +104,13 @@ namespace CalculatedField
         }
     }
 
-    class FunctionCallExpression : Expression 
+    class FunctionExpression : Expression 
     {
         public readonly string Name;
         public readonly List<Expression> Arguments;
         public int Location { get; set; }
 
-        public FunctionCallExpression(string name, List<Expression> arguments)
+        public FunctionExpression(string name, List<Expression> arguments)
         {
             Name = name;
             Arguments = arguments;
@@ -155,12 +119,13 @@ namespace CalculatedField
 
     class AssignmentExpression : Expression
     {
-        public readonly IdentifierExpression Left;
+        public readonly string Name;
         public readonly Expression Right;
+        public int Location { get; set; }
 
-        public AssignmentExpression(IdentifierExpression left, Expression right)
+        public AssignmentExpression(string name, Expression right)
         {
-            Left = left;
+            Name = name;
             Right = right;
         }
     }
@@ -168,21 +133,21 @@ namespace CalculatedField
     class IfExpression : Expression
     {
         public readonly Expression Condition;
-        public readonly Expression ThenExpression;
-        public readonly Expression ElseExpression;
+        public readonly BlockExpression ThenExpression;
+        public readonly BlockExpression ElseExpression;
 
-        public IfExpression(Expression condition, Expression thenBody, Expression elseBody)
+        public IfExpression(Expression condition, BlockExpression thenBody, BlockExpression elseBody)
         {
             Condition = condition;
             ThenExpression = thenBody;
             ElseExpression = elseBody;
         }
 
-        public IfExpression(Expression condition, Expression thenBody)
+        public IfExpression(Expression condition, BlockExpression thenBody)
         {
             Condition = condition;
             ThenExpression = thenBody;
-            ElseExpression = null;
+            ElseExpression = new BlockExpression(new List<Expression>() { new LiteralExpression("null", ScriptType.Null) });
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace CalculatedField
 {
-    class ScriptError
+    class ScriptError : Exception
     {
         public readonly int Column;
         public readonly int Line;
@@ -15,7 +15,7 @@ namespace CalculatedField
             Description = description;
         }
 
-        public string Message => String.Format("({0}, {1}): {2}", Line, Column, Description);
+        public override string Message => String.Format("({0}, {1}): {2}", Line, Column, Description);
 
     }
 }

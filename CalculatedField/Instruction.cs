@@ -1,7 +1,8 @@
 ﻿namespace CalculatedField
 {
-    enum Instruction : int
+    public enum Instruction : int
     {
+        Pop,
         Add = 1000, 
         Subtract, 
         Multiply,
@@ -18,6 +19,7 @@
         Not,
         PushConstant,
         PushVariable,
+        PushField,
         Store,
         JumpOnFalse,
         Jump,

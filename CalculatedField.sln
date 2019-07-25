@@ -10,6 +10,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CalculatedField", "CalculatedField\CalculatedField.csproj", "{24ECDCA0-809A-479F-9A39-337DE7B25ECF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{917044B9-8FE4-4866-A1BB-614E675AE82A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,6 +22,10 @@ Global
 		{24ECDCA0-809A-479F-9A39-337DE7B25ECF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{24ECDCA0-809A-479F-9A39-337DE7B25ECF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{24ECDCA0-809A-479F-9A39-337DE7B25ECF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{917044B9-8FE4-4866-A1BB-614E675AE82A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{917044B9-8FE4-4866-A1BB-614E675AE82A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{917044B9-8FE4-4866-A1BB-614E675AE82A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{917044B9-8FE4-4866-A1BB-614E675AE82A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
