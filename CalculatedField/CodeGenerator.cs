@@ -11,24 +11,21 @@ namespace CalculatedField
             Instructions = new List<Instruction>();
         }
 
-        public List<Instruction> GenerateProgram(BlockExpression program)
+        public List<Instruction> GenerateProgram(ScriptExpression program)
         {
             Generate(program);
             return Instructions;
         }
 
-        void Generate(Expression expression)
+        void Generate(Syntax expression)
         {
             switch(expression)
             {
                 case LiteralExpression e:
                     GenerateLiteralExpression(e);
                     break;
-                case BlockExpression e:
+                case ScriptExpression e:
                     GenerateBlockExpression(e);
-                    break;
-                case IfExpression e:
-                    GenerateIfExpression(e);
                     break;
                 case BinaryExpression e:
                     GenerateBinaryExpression(e);
@@ -36,7 +33,7 @@ namespace CalculatedField
                 case UnaryExpression e:
                     GenerateUnaryExpression(e);
                     break;
-                case AssignmentExpression e:
+                case AssignmentStatement e:
                     GenerateAssignmentExpression(e);
                     break;
                 case FunctionExpression e:
@@ -51,7 +48,7 @@ namespace CalculatedField
             }
         }
 
-        public void GenerateBlockExpression(BlockExpression block)
+        public void GenerateBlockExpression(ScriptExpression block)
         {
             if (block.Expressions.Count == 0)
             {
@@ -150,45 +147,16 @@ namespace CalculatedField
             Instructions.Add((Instruction)expression.Location);
         }
 
-        public void GenerateIfExpression(IfExpression expression)
-        {
-            int jumpPastElseArgLocation = 0;
-            int jumpOnFalseArgLocation = 0;
-
-            Generate(expression.Condition);
-
-            Instructions.Add(Instruction.JumpOnFalse);
-            jumpOnFalseArgLocation = Instructions.Count;
-            Instructions.Add((Instruction)0); // placeholder for jump on false argument
-            
-            Generate(expression.ThenExpression);
-            if (expression.ElseExpression != null)
-            {
-                Instructions.Add(Instruction.Jump);
-                jumpPastElseArgLocation = Instructions.Count;
-                Instructions.Add((Instruction)0); // placeholder for jump argument
-            }
-            Instructions[jumpOnFalseArgLocation] = (Instruction) Instructions.Count;
-            if (expression.ElseExpression != null)
-            {
-                Generate(expression.ElseExpression);
-                Instructions[jumpPastElseArgLocation] = (Instruction) Instructions.Count;
-            }
-            
-        }
-
-        public void GenerateAssignmentExpression(AssignmentExpression assignment)
+        public void GenerateAssignmentExpression(AssignmentStatement assignment)
         {           
             Generate(assignment.Right);
             Instructions.Add(Instruction.Store);
-            Instructions.Add((Instruction)assignment.Location);
-            Instructions.Add(Instruction.PushVariable);
             Instructions.Add((Instruction)assignment.Location);
         }
 
         public void GenerateFunctionCallExpression(FunctionExpression call)
         {
-            foreach (Expression argument in call.Arguments)
+            foreach (Syntax argument in call.Arguments)
             {
                 Generate(argument); // this leaves all of the expression results on the stack
             }

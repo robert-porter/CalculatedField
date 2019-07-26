@@ -19,7 +19,6 @@ namespace CalculatedField
             }
             else
             {
-                //TODO: assert value's type
                 Type = type;
                 Value = value;
             }

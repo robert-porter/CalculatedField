@@ -183,7 +183,7 @@ namespace CalculatedField
                             {
                                 arguments[i] = Pop();
                             }
-                            var value = function.Call(arguments);
+                            var value = function.Call(arguments.Reverse().ToArray());
                             Push(value);
                             break;
                         }

@@ -45,13 +45,13 @@ namespace CalculatedField
             };
         }
 
-        public BlockExpression Parse(TokenStream ts)
+        public ScriptExpression Parse(TokenStream ts)
         {
             var firstToken = ts.Peek();
-            var expressions = new List<Expression>();
+            var expressions = new List<Syntax>();
             while (!ts.EOF())
             {
-                var statement = ParseExpression(ts);
+                var statement = ParseStatement(ts);
                 if (!ts.EOF())
                 {
                     var token = ts.Current();
@@ -66,20 +66,35 @@ namespace CalculatedField
                 }
                 expressions.Add(statement);
             }
-            return new BlockExpression(expressions, firstToken);
+            return new ScriptExpression(expressions, firstToken);
         }
 
-        Expression ParseExpression(TokenStream ts)
+        Syntax ParseStatement(TokenStream ts)
+        {
+            if (ts.Match(TokenType.Identifier) && ts.Match(TokenType.Equal, 1))
+            {
+                var token = ts.Read();
+                ts.Expect(TokenType.Equal);
+                var right = ParseExpression(ts);
+                return new AssignmentStatement(token.Contents, right, token);
+            }
+            else
+            {
+                return ParseExpression(ts);
+            }
+        }
+
+        Syntax ParseExpression(TokenStream ts)
         {
             return ParseBinaryExpression(ts, 0);
         }
 
-        Expression ParseBinaryExpression(TokenStream ts, int precedence)
+        Syntax ParseBinaryExpression(TokenStream ts, int precedence)
         {
             if (precedence >= BinaryOperatorTable.Count)
                 return ParseUnaryExpression(ts);
 
-            Expression left = ParseBinaryExpression(ts, precedence + 1);
+            Syntax left = ParseBinaryExpression(ts, precedence + 1);
             while (BinaryOperatorTable[precedence].ContainsKey(ts.PeekType()))
             {
                 var binaryOperator = BinaryOperatorTable[precedence][ts.PeekType()];
@@ -97,7 +112,7 @@ namespace CalculatedField
             return left;
         }
 
-        Expression ParseUnaryExpression(TokenStream ts)
+        Syntax ParseUnaryExpression(TokenStream ts)
         {
             if (!UnaryOperatorTable.ContainsKey(ts.PeekType()))
                 return ParseFactor(ts);
@@ -110,11 +125,11 @@ namespace CalculatedField
             }
         }
 
-        Expression ParseFunctionCall(TokenStream ts)
+        Syntax ParseFunctionCall(TokenStream ts)
         {
             var token = ts.Read();
             ts.Expect(TokenType.OpenParen);
-            List<Expression> arguments = new List<Expression>();
+            List<Syntax> arguments = new List<Syntax>();
             while (!ts.Match(TokenType.CloseParen))
             {
                 arguments.Add(ParseExpression(ts));
@@ -125,19 +140,13 @@ namespace CalculatedField
             return new FunctionExpression(token.Contents, arguments, token);
         }
 
-        Expression ParseFactor(TokenStream ts)
+        Syntax ParseFactor(TokenStream ts)
         {
             if (ts.Match(TokenType.Identifier))
             {
                 if (ts.Match(TokenType.OpenParen, 1))
                 {
                     return ParseFunctionCall(ts);
-                }
-                if (ts.Match(TokenType.Equal, 1))
-                {
-                    var token = ts.Read();
-                    ts.Expect(TokenType.Equal);
-                    return new AssignmentExpression(token.Contents, ParseExpression(ts), token);
                 }
                 else
                 {
@@ -150,14 +159,10 @@ namespace CalculatedField
                 var token = ts.Read();
                 return new FieldExpression(token.Contents, token);
             }
-            if (ts.Match(TokenType.If))
-            {
-                return ParseIf(ts);
-            }
             else if (ts.Match(TokenType.OpenParen))
             {
                 ts.Read();
-                Expression parenthesizedExpression = ParseExpression(ts);
+                Syntax parenthesizedExpression = ParseExpression(ts);
                 ts.Expect(TokenType.CloseParen);
                 return parenthesizedExpression;
             }
@@ -189,41 +194,6 @@ namespace CalculatedField
             else 
             {
                 throw new ScriptError(ts.Column, ts.Line, string.Format("Unexpected token ", ts.Current().Contents));
-            }
-        }
-
-        Expression ParseIf(TokenStream ts)
-        {
-            var ifToken = ts.Expect(TokenType.If);
-            Expression condition = ParseExpression(ts);
-            var thenToken = ts.Expect(TokenType.Then);
-            var thenBody = new List<Expression>();
-            while (!(ts.Match(TokenType.Else) || ts.Match(TokenType.End)))
-            {
-                var thenExpression = ParseExpression(ts);
-                thenBody.Add(thenExpression);
-            }
-            if (ts.Match(TokenType.Else))
-            {
-                var elseToken = ts.Read();
-                if (ts.Match(TokenType.If))
-                {
-                    var elseBlockExpression = new BlockExpression(new List<Expression>() { ParseIf(ts) }, elseToken);
-                    return new IfExpression(condition, new BlockExpression(thenBody, thenToken), elseBlockExpression, ifToken); 
-                }
-                List<Expression> elseBody = new List<Expression>();
-                while (!ts.Match(TokenType.End))
-                {
-                    var elseExpression = ParseExpression(ts);
-                    elseBody.Add(elseExpression);
-                }
-                ts.Expect(TokenType.End);
-                return new IfExpression(condition, new BlockExpression(thenBody, thenToken), new BlockExpression(elseBody, elseToken), ifToken);
-            }
-            else
-            {
-                var endToken = ts.Expect(TokenType.End);
-                return new IfExpression(condition, new BlockExpression(thenBody, endToken), ifToken, endToken);
             }
         }
     }

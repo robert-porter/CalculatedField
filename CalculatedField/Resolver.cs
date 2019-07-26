@@ -4,9 +4,17 @@ namespace CalculatedField
 {
     class Resolver 
     {   
-        public void ResolveProgram(Expression expression, Symbols symbols)
+        public void ResolveProgram(ScriptExpression script, Symbols symbols)
         {
-            var type = Resolve(expression, symbols);
+            ScriptType type;
+            if (script.Expressions.Count == 0)
+                type = ScriptType.Null;
+            else
+            {
+                for (var i = 0; i < script.Expressions.Count - 1; i++)
+                    Resolve(script.Expressions[i], symbols);
+                type = Resolve(script.Expressions[script.Expressions.Count - 1], symbols);
+            }
             var field = symbols.GetField();
             if (field != null)
             {
@@ -14,21 +22,17 @@ namespace CalculatedField
                     throw new ScriptError(0, 0, $"The script calculates a {type} but the field is a {field.Type}");
             }
         }
-        public ScriptType Resolve(Expression expression, Symbols symbols)
+        public ScriptType Resolve(Syntax expression, Symbols symbols)
         {
             switch (expression)
             {
                 case LiteralExpression e:
                     return ResolveLiteralExpression(e, symbols);
-                case BlockExpression e:
-                    return ResolveBlockExpression(e, symbols);
-                case IfExpression e:
-                    return ResolveIfExpression(e, symbols);
                 case BinaryExpression e:
                     return ResolveBinaryExpression(e, symbols);
                 case UnaryExpression e:
                     return ResolveUnaryExpression(e, symbols);
-                case AssignmentExpression e:
+                case AssignmentStatement e:
                     return ResolveAssignmentExpression(e, symbols);
                 case FunctionExpression e:
                     return ResolveFunctionCallExpression(e, symbols);
@@ -49,15 +53,6 @@ namespace CalculatedField
                 location = symbols.AddConstant(value);
             e.Location = location;
             return e.Type;
-        }
-
-        ScriptType ResolveBlockExpression(BlockExpression e, Symbols symbols)
-        {
-            if (e.Expressions.Count == 0)
-                return ScriptType.Null;
-            for (var i = 0; i < e.Expressions.Count - 1; i++)
-                Resolve(e.Expressions[i], symbols);
-            return Resolve(e.Expressions[e.Expressions.Count - 1], symbols);
         }
 
         ScriptType ResolveBinaryExpression(BinaryExpression e, Symbols symbols)
@@ -129,7 +124,7 @@ namespace CalculatedField
             }
         }
 
-        ScriptType ResolveAssignmentExpression(AssignmentExpression e, Symbols symbols)
+        ScriptType ResolveAssignmentExpression(AssignmentStatement e, Symbols symbols)
         {
             var rightType = Resolve(e.Right, symbols);
             var variable = symbols.GetVariable(e.Name);
@@ -185,21 +180,6 @@ namespace CalculatedField
 
             e.Location = location;
             return field.Type;
-
-        }
-
-        ScriptType ResolveIfExpression(IfExpression e, Symbols symbols)
-        {
-            var conditionType = Resolve(e.Condition, symbols);
-            if(conditionType != ScriptType.Bool)
-            {
-                throw new ScriptError(e.Token.Column, e.Token.Line, "Conditional must be a boolean value or expression");
-            }
-            var thenType = Resolve(e.ThenExpression, symbols);
-            var elseType = Resolve(e.ElseExpression, symbols);
-            // only an error if used in an expression
-            TypeChecker.CheckIfBranches(thenType, elseType, out var type);
-            return type;
 
         }
 

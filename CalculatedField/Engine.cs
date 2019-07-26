@@ -70,9 +70,9 @@ namespace CalculatedField
             var tokenizer = new Tokenizer();
             tokenizer.CreateTokenDefinitions();
             var tokenizerResult = tokenizer.Tokenize(script);
-            var tokens = Tokenizer.FixNewlines(tokenizerResult);
+            var tokens = Tokenizer.FixNewlines(tokenizerResult.ToList());
             Parser parser = new Parser();
-            var tokenStream = new TokenStream(tokens.ToList());
+            var tokenStream = new TokenStream(tokens);
             var expression = parser.Parse(tokenStream);
             Symbols symbols = new Symbols(null, fields);
             var resolver = new Resolver();
@@ -98,7 +98,7 @@ namespace CalculatedField
             var tokenizer = new Tokenizer();
             tokenizer.CreateTokenDefinitions();
             var tokenizerResult = tokenizer.Tokenize(field.Script);
-            var tokens = Tokenizer.FixNewlines(tokenizerResult);
+            var tokens = Tokenizer.FixNewlines(tokenizerResult.ToList());
             Parser parser = new Parser();
             var tokenStream = new TokenStream(tokens.ToList());
             var expression = parser.Parse(tokenStream);

@@ -26,44 +26,12 @@ namespace UnitTests
 
         }
 
+
         [TestMethod]
         public void TestIf()
         {
-            var value = engine.CalculateValue("if true or false then 1.0 else 2.0 end");
-            Assert.AreEqual(1m, value.Value);
-
-            value = engine.CalculateValue(@"
-
-1 + if true or false then 1.0 else
-
-                2.0
-
-end");
+            var value = engine.CalculateValue(@"1 + if(true or false,1, 2.0)");
             Assert.AreEqual(2m, value.Value);
-
-
-            value = engine.CalculateValue(@"
-if true or false then 
-1.0 
-else
-
-2.0 
-
-end");
-            Assert.AreEqual(1m, value.Value);
-
-            value = engine.CalculateValue(@"
-if true or false then 1.0 
-else 2.0 end");
-            Assert.AreEqual(1m, value.Value);
-
-            value = engine.CalculateValue(@"
-if false then 1.0 
-else if true then 3 else 2 end");
-            Assert.AreEqual(3m, value.Value);
-
-            value = engine.CalculateValue("if false then null end");
-            Assert.AreEqual(null, value.Value, null);
         }
     }
 }

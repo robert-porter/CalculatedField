@@ -27,26 +27,41 @@ namespace CalculatedField
         Or
     }
 
-    abstract class Expression
+    abstract class Syntax
     {
         public readonly Token Token;
-        public Expression(Token token)
+        public Syntax(Token token)
         {
             Token = token;
         }
     }
 
-    class BlockExpression : Expression
+    class ScriptExpression : Syntax
     {
-        public readonly List<Expression> Expressions;
+        public readonly List<Syntax> Expressions;
 
-        public BlockExpression(List<Expression> expressions, Token token) : base(token)
+        public ScriptExpression(List<Syntax> expressions, Token token) : base(token)
         {
             Expressions = expressions;
         }
     }
 
-    class IdentifierExpression : Expression
+    class AssignmentStatement : Syntax
+    {
+        public readonly string Name;
+        public readonly Syntax Right;
+        public int Location { get; set; }
+
+        public AssignmentStatement(string name, Syntax right, Token token) : base(token)
+        {
+            Name = name;
+            Right = right;
+        }
+    }
+
+
+
+    class IdentifierExpression : Syntax
     {
         public readonly string Name;
         public int Location { get; set; }
@@ -57,7 +72,7 @@ namespace CalculatedField
         }
     }
 
-    class FieldExpression : Expression
+    class FieldExpression : Syntax
     {
         public readonly string Name;
         public int Location { get; set; }
@@ -68,7 +83,7 @@ namespace CalculatedField
         }
     }
 
-    class LiteralExpression : Expression
+    class LiteralExpression : Syntax
     {
         public readonly ScriptType Type;
         public readonly string Value; 
@@ -83,13 +98,13 @@ namespace CalculatedField
         public ScriptValue ScriptValue => ScriptValue.Parse(Value, Type); 
     }
 
-    class BinaryExpression : Expression
+    class BinaryExpression : Syntax
     {
         public readonly BinaryOperator Operator;
-        public readonly Expression Left;
-        public readonly Expression Right;
+        public readonly Syntax Left;
+        public readonly Syntax Right;
 
-        public BinaryExpression(BinaryOperator op, Expression left, Expression right, Token token) : base(token)
+        public BinaryExpression(BinaryOperator op, Syntax left, Syntax right, Token token) : base(token)
         {
             Operator = op;
             Left = left;
@@ -97,62 +112,29 @@ namespace CalculatedField
         }
     }
 
-    class UnaryExpression : Expression
+    class UnaryExpression : Syntax
     {
-        public readonly Expression Right;
+        public readonly Syntax Right;
         public readonly UnaryOperator Operator;
 
-        public UnaryExpression(UnaryOperator op, Expression argument, Token token) : base(token)
+        public UnaryExpression(UnaryOperator op, Syntax argument, Token token) : base(token)
         {
             Operator = op;
             Right = argument;
         }
     }
 
-    class FunctionExpression : Expression 
+    class FunctionExpression : Syntax 
     {
         public readonly string Name;
-        public readonly List<Expression> Arguments;
+        public readonly List<Syntax> Arguments;
         public int Location { get; set; }
 
-        public FunctionExpression(string name, List<Expression> arguments, Token token) : base(token)
+        public FunctionExpression(string name, List<Syntax> arguments, Token token) : base(token)
         {
             Name = name;
             Arguments = arguments;
         }
     }
 
-    class AssignmentExpression : Expression
-    {
-        public readonly string Name;
-        public readonly Expression Right;
-        public int Location { get; set; }
-
-        public AssignmentExpression(string name, Expression right, Token token) : base(token)
-        {
-            Name = name;
-            Right = right;
-        }
-    }
-
-    class IfExpression : Expression
-    {
-        public readonly Expression Condition;
-        public readonly BlockExpression ThenExpression;
-        public readonly BlockExpression ElseExpression;
-
-        public IfExpression(Expression condition, BlockExpression thenBody, BlockExpression elseBody, Token token) : base(token)
-        {
-            Condition = condition;
-            ThenExpression = thenBody;
-            ElseExpression = elseBody;
-        }
-
-        public IfExpression(Expression condition, BlockExpression thenBody, Token ifToken, Token endToken) : base(ifToken)
-        {
-            Condition = condition;
-            ThenExpression = thenBody;
-            ElseExpression = new BlockExpression(new List<Expression>() { new LiteralExpression("null", ScriptType.Null, endToken) }, endToken);
-        }
-    }
 }

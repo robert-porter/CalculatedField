@@ -35,10 +35,6 @@ namespace CalculatedField
         Not,
         And,
         Or,
-        If,
-        Then,
-        Else,
-        End,
         EOF
     }
 
@@ -106,10 +102,6 @@ namespace CalculatedField
             TokenDefinitions.Add(new TokenDefinition("not", TokenType.Not));
             TokenDefinitions.Add(new TokenDefinition("and", TokenType.And));
             TokenDefinitions.Add(new TokenDefinition("or", TokenType.Or));
-            TokenDefinitions.Add(new TokenDefinition("if", TokenType.If));
-            TokenDefinitions.Add(new TokenDefinition("then", TokenType.Then));
-            TokenDefinitions.Add(new TokenDefinition("else", TokenType.Else));
-            TokenDefinitions.Add(new TokenDefinition("end", TokenType.End));
             TokenDefinitions.Add(new TokenDefinition("null", TokenType.Null));
             TokenDefinitions.Add(new TokenDefinition("[a-zA-Z_]+[a-zA-Z_0-9]*", TokenType.Identifier));
         }
@@ -188,52 +180,29 @@ namespace CalculatedField
             };
         }
 
-        public static IEnumerable<Token> FixNewlines(IEnumerable<Token> tokens)
+        public static List<Token> FixNewlines(List<Token> tokens)
         {
-            var iterator = tokens.GetEnumerator();
-            bool skip = true;
-            while (iterator.MoveNext())
+            var tokensOut = new List<Token>();
+            int i = 0;
+            while (tokens[i].Type == TokenType.Newline && i < tokens.Count)
+                i++;
+
+            while(i < tokens.Count)
             {
-                var token = iterator.Current;
-                while (token.Type == TokenType.Newline && skip && iterator.MoveNext())
+                if (tokens[i].Type == TokenType.Newline)
                 {
-                    token = iterator.Current;
-                }
-                switch (token.Type)
-                {
-                    case TokenType.Else:
-                    case TokenType.Then:
-                    case TokenType.Newline:
-                        skip = true;
-                        break;
-                    default:
-                        skip = false;
-                        break;
-                }
-                if (token.Type == TokenType.Newline)
-                {
-                    iterator.MoveNext();
-                    var nextToken = iterator.Current;
-                    if (nextToken.Type == TokenType.Else || nextToken.Type == TokenType.End)
-                    {
-                        if (nextToken.Type == TokenType.Else)
-                            skip = true;
-                        yield return nextToken;
-                    }
-                    else
-                    {
-                        if (nextToken.Type != TokenType.Newline && nextToken.Type != TokenType.Else && nextToken.Type != TokenType.End)
-                            yield return token;
-                        if (!(skip && nextToken.Type == TokenType.Newline))
-                            yield return nextToken;
-                    }
+                    tokensOut.Add(tokens[i]);
+                    while (tokens[i].Type == TokenType.Newline)
+                        i++;
                 }
                 else
                 {
-                    yield return token;
+                    tokensOut.Add(tokens[i]);
+                    i++;
                 }
             }
-        }
 
+            return tokensOut;
+        }
     }
 }

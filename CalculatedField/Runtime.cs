@@ -17,6 +17,7 @@ namespace CalculatedField
             addAll(typeof(LibDateTime));
             addAll(typeof(LibConversion));
             addAll(typeof(LibTimeSpan));
+            addAll(typeof(LibStandard));
             void addAll(Type type)
             {
                 var methodInfos = type.GetMethods();
@@ -25,6 +26,44 @@ namespace CalculatedField
                     Functions.Add(new Function(methodInfo));
                 }
             }
+        }
+    }
+
+    static class LibStandard
+    {
+        public static bool? @if(bool? condition, bool ?valueOnTrue, bool? valueOnFalse)
+        {
+            if (condition == null) return null;
+            if(condition.Value) return valueOnTrue;
+            else return valueOnFalse;
+        }
+
+        public static decimal? @if(bool? condition, decimal? valueOnTrue, decimal? valueOnFalse)
+        {
+            if (condition == null) return null;
+            if (condition.Value) return valueOnTrue;
+            else return valueOnFalse;
+        }
+
+        public static string @if(bool? condition, string valueOnTrue, string valueOnFalse)
+        {
+            if (condition == null) return null;
+            if (condition.Value) return valueOnTrue;
+            else return valueOnFalse;
+        }
+
+        public static DateTime? @if(bool? condition, DateTime? valueOnTrue, DateTime? valueOnFalse)
+        {
+            if (condition == null) return null;
+            if (condition.Value) return valueOnTrue;
+            else return valueOnFalse;
+        }
+
+        public static TimeSpan? @if(bool? condition, TimeSpan? valueOnTrue, TimeSpan? valueOnFalse)
+        {
+            if (condition == null) return null;
+            if (condition.Value) return valueOnTrue;
+            else return valueOnFalse;
         }
     }
 
