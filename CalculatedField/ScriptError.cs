@@ -16,6 +16,5 @@ namespace CalculatedField
         }
 
         public override string Message => String.Format("({0}, {1}): {2}", Line, Column, Description);
-
     }
 }

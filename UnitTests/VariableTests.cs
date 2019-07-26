@@ -16,7 +16,7 @@ namespace UnitTests
         {
             var engine = new Engine();
             var field = new Field();
-            field.Type = ScriptType.Decimal;
+            field.Type = ScriptType.Number;
             ScriptValue value;
             CompiledScript compiledScript;
 
@@ -31,7 +31,7 @@ x+y";
             field.Script = @"
 x = 2
 y = 3
-z = x + y
+z = x +y
 z + 2.0
 ";
             compiledScript = engine.Compile(field, new List<Field>());

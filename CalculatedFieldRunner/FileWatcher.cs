@@ -70,14 +70,14 @@ namespace CalculatedField
                 Name = "<<a>>",
                 FieldId = Guid.NewGuid(),
                 Script = null,
-                Type = ScriptType.Decimal
+                Type = ScriptType.Number
             };
             var fy = new Field
             {
                 Name = "<<y>>",
                 FieldId = Guid.NewGuid(),
                 Script = "<<a>> + 2",
-                Type = ScriptType.Decimal
+                Type = ScriptType.Number
             };
 
             fields.Add(fx);

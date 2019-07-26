@@ -30,30 +30,38 @@ namespace CalculatedField
             return Index >= Tokens.Count || Tokens[Index].Type == TokenType.EOF;
         }
 
-        public TokenType PeekToken()
+        public Token Peek()
+        {
+            if (Index >= Tokens.Count)
+                throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, string.Format("Unexpected end of file"));
+            return Tokens[Index];
+        }
+
+        public TokenType PeekType()
         {
             if (Index >= Tokens.Count)
                 throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, string.Format("Unexpected end of file"));
             return Tokens[Index].Type;
         }
 
-        public string ReadContents()
+        public Token Read()
         {
             if (Index >= Tokens.Count - 1)
                 throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, string.Format("Unexpected end of file"));
-            return Tokens[Index++].Contents;
+            return Tokens[Index++];
         }
 
-        public bool MatchAndRead(TokenType type)
+        public Token MatchAndRead(TokenType type)
         {
             if (Index >= Tokens.Count)
                 throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, string.Format("Unexpected end of file"));
             if (Tokens[Index].Type == type)
             {
+                var token = Tokens[Index];
                 Index++;
-                return true;
+                return token;
             }
-            return false;
+            return null;
         }
 
         public bool Match(TokenType type, int ahead = 0)
@@ -63,11 +71,17 @@ namespace CalculatedField
             return Tokens[Index + ahead].Type == type;
         }
 
-        public bool Expect(TokenType token)
+        public Token Expect(TokenType type)
         {
-            if (MatchAndRead(token))
-                return true;
-            throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, string.Format("Expected {0}, found {1}", token, Tokens[Index].Type));
+            if (Index >= Tokens.Count)
+                throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, string.Format("Unexpected end of file"));
+            if(Tokens[Index].Type == type)
+            {
+                var token = Tokens[Index];
+                Index++;
+                return token;
+            }
+            throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, string.Format("Expected {0}, found {1}", type, Tokens[Index].Type));
         }
     }
 }

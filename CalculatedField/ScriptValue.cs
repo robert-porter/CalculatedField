@@ -27,59 +27,43 @@ namespace CalculatedField
 
         public ScriptValue(object value)
         {
-            var type = value.GetType();
             if (value == null)
             {
                 Type = ScriptType.Null;
                 Value = null;
-            }
-            else if (type == typeof(long?) || type == typeof(long) || type == typeof(int?) || type == typeof(int))
-            {
-                Type = ScriptType.Integer;
-                Value = Convert.ToInt64(value);
-            }
-            else if (type == typeof(decimal?) | type == typeof(decimal))
-            {
-                Type = ScriptType.Decimal;
-                Value = Convert.ToDecimal(value);
-            }
-            else if (type == typeof(string))
-            {
-                Type = ScriptType.String;
-                Value = Convert.ToString(value);
-            }
-            else if (type == typeof(bool?) || type == typeof(bool))
-            {
-                Type = ScriptType.Bool;
-                Value = Convert.ToBoolean(value);
-            }
-            else if (type == typeof(DateTime?) || type == typeof(DateTime))
-            {
-                Type = ScriptType.DateTime;
-                value = Convert.ToDateTime(value);
-            }
-            else
-            {
-                Type = ScriptType.Null;
-                value = null;
+                return;
             }
 
-            if(value == null)
+            Type = CSharpTypeToScriptType(value.GetType());
+
+            switch (Type)
             {
-                Type = ScriptType.Null;
-            }
+                case ScriptType.Number:
+                    Value = Convert.ToDecimal(value);
+                    return;
+                case ScriptType.String:
+                    Value = Convert.ToString(value);
+                    return;
+                case ScriptType.Bool:
+                    Value = Convert.ToBoolean(value);
+                    return;
+                case ScriptType.DateTime:
+                    Value = Convert.ToDateTime(value);
+                    return;
+                case ScriptType.TimeSpan:
+                    Value = (TimeSpan) value;
+                    return;
+                default:
+                    Type = ScriptType.Null;
+                    Value = null;
+                    return;
+            }         
         }
 
         public ScriptValue(decimal value)
         {
-            Type = ScriptType.Decimal;
+            Type = ScriptType.Number;
             Value = value;
-        }
-
-        public ScriptValue(long value)
-        {
-            Type = ScriptType.Integer;
-            Value = (long) value;
         }
 
         public ScriptValue(bool value)
@@ -110,10 +94,8 @@ namespace CalculatedField
         {
             switch(type)
             {
-                case ScriptType.Decimal:
+                case ScriptType.Number:
                     return new ScriptValue(type, decimal.Parse(stringValue));
-                case ScriptType.Integer:
-                    return new ScriptValue(type, long.Parse(stringValue));
                 case ScriptType.Bool:
                     return new ScriptValue(type, bool.Parse(stringValue));
                 case ScriptType.DateTime:
@@ -129,10 +111,8 @@ namespace CalculatedField
 
         public static ScriptType CSharpTypeToScriptType(Type type)
         {
-            if (type == typeof(long?) || type == typeof(long) || type == typeof(int?) || type == typeof(int))
-                return ScriptType.Integer;
-            if (type == typeof(decimal?) | type == typeof(decimal))
-                return ScriptType.Decimal;
+            if (type == typeof(decimal?) | type == typeof(decimal) || type == typeof(long?) || type == typeof(long) || type == typeof(int?) || type == typeof(int))
+                return ScriptType.Number;
             if (type == typeof(string))
                 return ScriptType.String;
             if (type == typeof(bool?) || type == typeof(bool))
@@ -145,11 +125,10 @@ namespace CalculatedField
         public object Value { get; set; }
         public ScriptType Type { get; set; }
 
-        public decimal DecimalValue => (decimal)Value;
+        public decimal NumberValue => (decimal)Value;
         public string StringValue => (string)Value;
         public DateTime DateTimeValue => (DateTime)Value;
         public TimeSpan TimeSpanValue => (TimeSpan)Value;
-        public long IntegerValue => (long)Value;
         public bool BoolValue => (bool)Value;
     }
 }

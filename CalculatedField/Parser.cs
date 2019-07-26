@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 
 namespace CalculatedField
 {
@@ -35,6 +34,7 @@ namespace CalculatedField
             {
                 [TokenType.Star] = BinaryOperator.Multiply,
                 [TokenType.Slash] = BinaryOperator.Divide,
+                [TokenType.Percent] = BinaryOperator.DivideAndTruncate, 
             });
 
             UnaryOperatorTable = new Dictionary<TokenType, UnaryOperator>
@@ -47,6 +47,7 @@ namespace CalculatedField
 
         public BlockExpression Parse(TokenStream ts)
         {
+            var firstToken = ts.Peek();
             var expressions = new List<Expression>();
             while (!ts.EOF())
             {
@@ -60,12 +61,12 @@ namespace CalculatedField
                     }
                     else
                     {
-                        ts.ReadContents();
+                        ts.Read();
                     }
                 }
                 expressions.Add(statement);
             }
-            return new BlockExpression(expressions);
+            return new BlockExpression(expressions, firstToken);
         }
 
         Expression ParseExpression(TokenStream ts)
@@ -79,18 +80,18 @@ namespace CalculatedField
                 return ParseUnaryExpression(ts);
 
             Expression left = ParseBinaryExpression(ts, precedence + 1);
-            while (BinaryOperatorTable[precedence].ContainsKey(ts.PeekToken()))
+            while (BinaryOperatorTable[precedence].ContainsKey(ts.PeekType()))
             {
-                var binaryOperator = BinaryOperatorTable[precedence][ts.PeekToken()];
-                ts.ReadContents();
+                var binaryOperator = BinaryOperatorTable[precedence][ts.PeekType()];
+                var token = ts.Read();
                 var right = ParseBinaryExpression(ts, precedence + 1);
-                if (BinaryOperatorTable[precedence].ContainsKey(ts.PeekToken()))
+                if (BinaryOperatorTable[precedence].ContainsKey(ts.PeekType()))
                 {
-                    left = new BinaryExpression(binaryOperator, left, right);
+                    left = new BinaryExpression(binaryOperator, left, right, token);
                 }
                 else
                 {
-                    return new BinaryExpression(binaryOperator, left, right);
+                    return new BinaryExpression(binaryOperator, left, right, token);
                 }
             }
             return left;
@@ -98,20 +99,20 @@ namespace CalculatedField
 
         Expression ParseUnaryExpression(TokenStream ts)
         {
-            if (!UnaryOperatorTable.ContainsKey(ts.PeekToken()))
+            if (!UnaryOperatorTable.ContainsKey(ts.PeekType()))
                 return ParseFactor(ts);
             else 
             {
-                var unaryOperator = UnaryOperatorTable[ts.PeekToken()];
-                ts.ReadContents();
+                var unaryOperator = UnaryOperatorTable[ts.PeekType()];
+                var token = ts.Read();
                 var right = ParseUnaryExpression(ts);
-                return new UnaryExpression(unaryOperator, right);
+                return new UnaryExpression(unaryOperator, right, token);
             }
         }
 
         Expression ParseFunctionCall(TokenStream ts)
         {
-            string name = ts.ReadContents();
+            var token = ts.Read();
             ts.Expect(TokenType.OpenParen);
             List<Expression> arguments = new List<Expression>();
             while (!ts.Match(TokenType.CloseParen))
@@ -121,7 +122,7 @@ namespace CalculatedField
                     ts.Expect(TokenType.Comma);
             }
             ts.Expect(TokenType.CloseParen);
-            return new FunctionExpression(name, arguments);
+            return new FunctionExpression(token.Contents, arguments, token);
         }
 
         Expression ParseFactor(TokenStream ts)
@@ -134,48 +135,56 @@ namespace CalculatedField
                 }
                 if (ts.Match(TokenType.Equal, 1))
                 {
-                    var name = ts.ReadContents();
+                    var token = ts.Read();
                     ts.Expect(TokenType.Equal);
-                    return new AssignmentExpression(name, ParseExpression(ts));
+                    return new AssignmentExpression(token.Contents, ParseExpression(ts), token);
                 }
                 else
                 {
-                    return new IdentifierExpression(ts.ReadContents());
+                    var token = ts.Read();
+                    return new IdentifierExpression(token.Contents, token);
                 }
             }
             if(ts.Match(TokenType.Field))
             {
-                return new FieldExpression(ts.ReadContents());
+                var token = ts.Read();
+                return new FieldExpression(token.Contents, token);
             }
             if (ts.Match(TokenType.If))
             {
                 return ParseIf(ts);
             }
-            else if (ts.MatchAndRead(TokenType.OpenParen))
+            else if (ts.Match(TokenType.OpenParen))
             {
+                ts.Read();
                 Expression parenthesizedExpression = ParseExpression(ts);
                 ts.Expect(TokenType.CloseParen);
                 return parenthesizedExpression;
             }
             else if (ts.Match(TokenType.DecimalLiteral))
             {
-                return new LiteralExpression(ts.ReadContents(), ScriptType.Decimal);
+                var token = ts.Read();
+                return new LiteralExpression(token.Contents, ScriptType.Number, token);
             }
             else if (ts.Match(TokenType.True) || ts.Match(TokenType.False))
             {
-                return new LiteralExpression(ts.ReadContents(), ScriptType.Bool);
+                var token = ts.Read();
+                return new LiteralExpression(token.Contents, ScriptType.Bool, token);
             }
             else if (ts.Match(TokenType.StringLiteral))
             {
-                return new LiteralExpression(ts.ReadContents(), ScriptType.String);
+                var token = ts.Read();
+                return new LiteralExpression(token.Contents, ScriptType.String, token);
             }
-            else if (ts.Match(TokenType.IntegerLiteral))
+            else if(ts.Match(TokenType.DateTimeLiteral))
             {
-                return new LiteralExpression(ts.ReadContents(), ScriptType.Integer);
+                var token = ts.Read();
+                return new LiteralExpression(token.Contents, ScriptType.DateTime, token);
             }
-            else if (ts.MatchAndRead(TokenType.Null))
+            else if (ts.Match(TokenType.Null))
             {
-                return new LiteralExpression("", ScriptType.Null);
+                var token = ts.Read();
+                return new LiteralExpression(token.Contents, ScriptType.Null, token);
             }
             else 
             {
@@ -185,20 +194,22 @@ namespace CalculatedField
 
         Expression ParseIf(TokenStream ts)
         {
-            ts.Expect(TokenType.If);
+            var ifToken = ts.Expect(TokenType.If);
             Expression condition = ParseExpression(ts);
-            ts.Expect(TokenType.Then);
+            var thenToken = ts.Expect(TokenType.Then);
             var thenBody = new List<Expression>();
             while (!(ts.Match(TokenType.Else) || ts.Match(TokenType.End)))
             {
                 var thenExpression = ParseExpression(ts);
                 thenBody.Add(thenExpression);
             }
-            if (ts.MatchAndRead(TokenType.Else))
+            if (ts.Match(TokenType.Else))
             {
+                var elseToken = ts.Read();
                 if (ts.Match(TokenType.If))
                 {
-                    return new IfExpression(condition, new BlockExpression(thenBody), new BlockExpression(new List<Expression>() { ParseIf(ts) }));
+                    var elseBlockExpression = new BlockExpression(new List<Expression>() { ParseIf(ts) }, elseToken);
+                    return new IfExpression(condition, new BlockExpression(thenBody, thenToken), elseBlockExpression, ifToken); 
                 }
                 List<Expression> elseBody = new List<Expression>();
                 while (!ts.Match(TokenType.End))
@@ -207,12 +218,12 @@ namespace CalculatedField
                     elseBody.Add(elseExpression);
                 }
                 ts.Expect(TokenType.End);
-                return new IfExpression(condition, new BlockExpression(thenBody), new BlockExpression(elseBody));
+                return new IfExpression(condition, new BlockExpression(thenBody, thenToken), new BlockExpression(elseBody, elseToken), ifToken);
             }
             else
             {
-                ts.Expect(TokenType.End);
-                return new IfExpression(condition, new BlockExpression(thenBody));
+                var endToken = ts.Expect(TokenType.End);
+                return new IfExpression(condition, new BlockExpression(thenBody, endToken), ifToken, endToken);
             }
         }
     }

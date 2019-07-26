@@ -16,6 +16,7 @@ namespace CalculatedField
             addAll(typeof(LibString));
             addAll(typeof(LibDateTime));
             addAll(typeof(LibConversion));
+            addAll(typeof(LibTimeSpan));
             void addAll(Type type)
             {
                 var methodInfos = type.GetMethods();
@@ -31,6 +32,7 @@ namespace CalculatedField
     {
         public static decimal? parseInteger(string s)
         {
+            if (s == null) return null;
             if (long.TryParse(s, out var result))
                 return result;
             return null;
@@ -38,6 +40,7 @@ namespace CalculatedField
 
         public static decimal? parseDecimal(string s)
         {
+            if (s == null) return null;
             if (decimal.TryParse(s, out var result))
                 return result;
             return null;
@@ -45,6 +48,7 @@ namespace CalculatedField
 
         public static bool? parseBool(string s)
         {
+            if (s == null) return null;
             if (bool.TryParse(s, out var result))
                 return result;
             return null;
@@ -52,30 +56,18 @@ namespace CalculatedField
 
         public static DateTime? parseDate(string s)
         {
+            if (s == null) return null;
             if (DateTime.TryParse(s, out var result))
                 return result;
             return null;
         }
 
-        public static string toString(long x)
-        {
-            return x.ToString();
-        }
+        public static string toString(long? x) => x?.ToString();
+        public static string toString(decimal? x) => x?.ToString();
+        public static string toString(bool? x) => x?.ToString();
+        public static string toString(DateTime? x) => x?.ToString();
+        public static string toString(TimeSpan? x) => x?.ToString();
 
-        public static string toString(decimal x)
-        {
-            return x.ToString();
-        }
-
-        public static string toString(bool x)
-        {
-            return x.ToString();
-        }
-
-        public static string toString(DateTime x)
-        {
-            return x.ToString();
-        }
     }
 
     static class LibString
@@ -88,6 +80,7 @@ namespace CalculatedField
 
         public static string character(string s, int i)
         {
+            if (s == null) return null;
             if (i < 0 || i >= s.Length) return "";
             return s?.Substring(i, i + 1);
         }
@@ -97,7 +90,7 @@ namespace CalculatedField
             if (a == null && b == null) return null;
             if (a == null) return b;
             if (b == null) return a;
-            return a + b;
+            return string.Concat(a, b);
         }
 
         public static bool contains(string a, string b)
@@ -108,7 +101,7 @@ namespace CalculatedField
 
         public static string substring(string s, int startIndex, int length)
         {
-            if (s == null) return "";
+            if (s == null) return null;
             if (startIndex < 0 || length < 0) return "";
             if (startIndex >= s.Length) return "";
             if (startIndex + length >= s.Length) length = s.Length - startIndex;
@@ -142,16 +135,20 @@ namespace CalculatedField
 
     }
 
+    static class LibTimeSpan
+    {
+        public static decimal? totalDays(TimeSpan? ts) => (decimal?)ts?.TotalDays;
+        public static decimal? totalHours(TimeSpan? ts) => (decimal)ts?.TotalHours;
+        public static decimal? totalMinutes(TimeSpan? ts) => (decimal?)ts?.TotalMinutes;
+        public static decimal? totalSeconds(TimeSpan? ts) => (decimal?)ts?.TotalSeconds;
+        public static decimal? days(TimeSpan? ts) => (decimal)ts?.Days;
+        public static decimal? hours(TimeSpan? ts) => (decimal)ts?.Hours;
+        public static decimal? minutes(TimeSpan? ts) => (decimal)ts?.Minutes;
+        public static decimal? seconds(TimeSpan? ts) => (decimal)ts?.Seconds;
+    }
 
     static class LibDateTime
     {
-        public static DateTime? date(string s)
-        {
-            if (DateTime.TryParse(s, out var dt))
-                return dt;
-            return null;
-        }
-
 
         public static DateTime Today => DateTime.Today;
         public static DateTime Yesterday => DateTime.Today.AddDays(-1);
@@ -351,6 +348,30 @@ namespace CalculatedField
         {
             if (x == null) return null;
             return Math.Round(x.Value);
+        }
+
+        public static decimal? pow(decimal? a,  decimal? b)
+        {
+            if (a == null || b == null) return null;
+            return (decimal) Math.Pow((double)a.Value, (double)b.Value);
+        }
+
+        public static decimal? pow(decimal? a, long? b)
+        {
+            if (a == null || b == null) return null;
+            return (decimal)Math.Pow((double)a.Value, b.Value);
+        }
+
+        public static decimal? pow(long? a, decimal? b)
+        {
+            if (a == null || b == null) return null;
+            return (decimal)Math.Pow(a.Value, (double)b.Value);
+        }
+
+        public static decimal? pow(long? a, long? b)
+        {
+            if (a == null || b == null) return null;
+            return (decimal) Math.Pow(a.Value, b.Value);
         }
     }
     

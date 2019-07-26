@@ -3,8 +3,7 @@
     public enum ScriptType
     {
         Null,
-        Decimal,
-        Integer,
+        Number,
         String,
         DateTime,
         TimeSpan,

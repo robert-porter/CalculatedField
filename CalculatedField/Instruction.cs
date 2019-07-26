@@ -1,12 +1,13 @@
 ﻿namespace CalculatedField
 {
-    public enum Instruction : int
+    public enum Instruction : byte
     {
-        Pop,
-        Add = 1000, 
+        Pop = 128,
+        Add, 
         Subtract, 
         Multiply,
         Divide,
+        DivideAndTruncate, 
         Negate,
         Less,
         LessOrEqual,

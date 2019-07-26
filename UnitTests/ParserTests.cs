@@ -9,76 +9,61 @@ namespace UnitTests
     [TestClass]
     public class ParserTests
     {
+        Engine engine = new Engine();
+
+
         [TestMethod]
-        public void TestComplexExpressions()
+        public void TestOrderOfOperations()
         {
-            var engine = new Engine();
-            var field = new Field();
-            field.Type = ScriptType.Decimal;
-            ScriptValue value;
-            CompiledScript compiledScript;
+            var value = engine.CalculateValue("(2.0) + (17*2-30) * (5)+2 - (8/2)*4 < 10 and 2 >= 3");
+            Assert.AreEqual(false, value.Value);
 
-            field.Script = "(2.0) + (17*2-30) * (5)+2 - (8/2)*4";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(value.Value, 8m);
+            value = engine.CalculateValue("(2.0) + (17*2-30) * (5)+2 - (8/2)*4 < 10 and 2<= 3 or 3 < 2");
+            Assert.AreEqual(true, value.Value);
 
-            field.Script = "(( ((2.0)) + 4))*((5))";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(value.Value, 30m);
+            value = engine.CalculateValue("(( ((2.0)) + 4))*((5))");
+            Assert.AreEqual(30m, value.Value);
 
         }
 
         [TestMethod]
         public void TestIf()
         {
-            var engine = new Engine();
-            var field = new Field();
-            field.Type = ScriptType.Decimal;
-            ScriptValue value;
-            CompiledScript compiledScript;
+            var value = engine.CalculateValue("if true or false then 1.0 else 2.0 end");
+            Assert.AreEqual(1m, value.Value);
 
-            field.Script = "if true or false then 1.0 else 2.0 end";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(value.Value, 1m);
-
-            field.Script = @"
+            value = engine.CalculateValue(@"
 
 1 + if true or false then 1.0 else
 
-2.0 
+                2.0
 
-end";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(value.Value, 2m);
+end");
+            Assert.AreEqual(2m, value.Value);
 
-            field.Script = @"
+
+            value = engine.CalculateValue(@"
 if true or false then 
 1.0 
 else
 
 2.0 
 
-end";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(value.Value, 1m);
+end");
+            Assert.AreEqual(1m, value.Value);
 
-            field.Script = @"
+            value = engine.CalculateValue(@"
 if true or false then 1.0 
-else 2.0 end";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(value.Value, 1m);
+else 2.0 end");
+            Assert.AreEqual(1m, value.Value);
 
-            field.Script = "if false then null end";
-            field.Type = ScriptType.Null;
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(value.Value, null);
+            value = engine.CalculateValue(@"
+if false then 1.0 
+else if true then 3 else 2 end");
+            Assert.AreEqual(3m, value.Value);
+
+            value = engine.CalculateValue("if false then null end");
+            Assert.AreEqual(null, value.Value, null);
         }
     }
 }

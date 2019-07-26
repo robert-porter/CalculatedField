@@ -15,9 +15,9 @@ namespace CalculatedField
 
             //sort 
 
-            foreach(var compiledScript in compiledScripts)
+            foreach (var compiledScript in compiledScripts)
             {
-                foreach(var record in records)
+                foreach (var record in records)
                 {
                     Calculate(compiledScript, record);
                 }
@@ -30,7 +30,7 @@ namespace CalculatedField
             {
                 List<ScriptValue> fieldValues = compiledScript.Fields.Select(field => new ScriptValue(record[field.FieldId])).ToList();
                 var value = VirtualMachine.Run(compiledScript, fieldValues);
-                if(value.Type != ScriptType.Null)
+                if (value.Type != ScriptType.Null)
                     record[compiledScript.Field.FieldId] = value.Value;
             }
         }
@@ -46,9 +46,55 @@ namespace CalculatedField
             return new ScriptValue();
         }
 
+        public ScriptValue CalculateValue(string script)
+        {
+            var fields = new List<Field>();
+            var record = new Dictionary<Guid, object>();
+            return CalculateValue(script, fields, record);
+        }
+
+        public ScriptValue CalculateValue(string script, List<Field> fields, Dictionary<Guid, object> record)
+        {
+            var compiledScript = Compile(script, fields);
+            if (compiledScript != null)
+            {
+                List<ScriptValue> fieldValues = compiledScript.Fields.Select(field => new ScriptValue(record[field.FieldId])).ToList();
+                var value = VirtualMachine.Run(compiledScript, fieldValues);
+                return value;
+            }
+            return new ScriptValue();
+        }
+
+        public CompiledScript Compile(string script, List<Field> fields)
+        {
+            var tokenizer = new Tokenizer();
+            tokenizer.CreateTokenDefinitions();
+            var tokenizerResult = tokenizer.Tokenize(script);
+            var tokens = Tokenizer.FixNewlines(tokenizerResult);
+            Parser parser = new Parser();
+            var tokenStream = new TokenStream(tokens.ToList());
+            var expression = parser.Parse(tokenStream);
+            Symbols symbols = new Symbols(null, fields);
+            var resolver = new Resolver();
+            resolver.ResolveProgram(expression, symbols);
+            var codeGenerator = new CodeGenerator();
+            var instructions = codeGenerator.GenerateProgram(expression);
+            var compiledScript = new CompiledScript
+            {
+                Functions = symbols.GetScriptFunctions(),
+                Constants = symbols.GetScriptConstants(),
+                Fields = symbols.GetScriptFields(),
+                NumVariables = symbols.ScriptVariablesCount,
+                Instructions = instructions,
+                Field = null
+            };
+
+            return compiledScript;
+        }
+    
+
         public CompiledScript Compile(Field field, List<Field> fields)
         {
-
             var tokenizer = new Tokenizer();
             tokenizer.CreateTokenDefinitions();
             var tokenizerResult = tokenizer.Tokenize(field.Script);
@@ -72,7 +118,6 @@ namespace CalculatedField
             };
 
             return compiledScript;
-
         }
     }
 }

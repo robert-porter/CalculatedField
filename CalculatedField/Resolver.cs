@@ -7,8 +7,12 @@ namespace CalculatedField
         public void ResolveProgram(Expression expression, Symbols symbols)
         {
             var type = Resolve(expression, symbols);
-            if (type != symbols.GetField().Type)
-                throw new ScriptError(0, 0, "Type error");
+            var field = symbols.GetField();
+            if (field != null)
+            {
+                if (type != field.Type)
+                    throw new ScriptError(0, 0, $"The script calculates a {type} but the field is a {field.Type}");
+            }
         }
         public ScriptType Resolve(Expression expression, Symbols symbols)
         {
@@ -33,7 +37,7 @@ namespace CalculatedField
                 case FieldExpression e:
                     return ResolveFieldExpression(e, symbols);
                 default:
-                    throw new ScriptError(0, 0, "Type error");
+                    throw new ScriptError(0, 0, "Internal compiler error");
             }
         }
 
@@ -60,92 +64,69 @@ namespace CalculatedField
         {
             var left = Resolve(e.Left, symbols);
             var right = Resolve(e.Right, symbols);
+            ScriptType type = ScriptType.Null;
             switch (e.Operator)
             {
                 case BinaryOperator.Add:
-                    if (left == ScriptType.Integer && right == ScriptType.Integer) return ScriptType.Integer;
-                    if (left == ScriptType.Decimal && right == ScriptType.Integer) return ScriptType.Decimal;
-                    if (left == ScriptType.Integer && right == ScriptType.Decimal) return ScriptType.Decimal;
-                    if (left == ScriptType.Decimal && right == ScriptType.Decimal) return ScriptType.Decimal;
-                    if (left == ScriptType.DateTime && right == ScriptType.TimeSpan) return ScriptType.DateTime;
-                    if (left == ScriptType.TimeSpan && right == ScriptType.DateTime) return ScriptType.DateTime;
-                    if (left == ScriptType.TimeSpan && right == ScriptType.TimeSpan) return ScriptType.TimeSpan;
-                    if (left == ScriptType.String && right == ScriptType.String) return ScriptType.String;
-                    throw new ScriptError(0, 0, "Type error");
+                    if (!TypeChecker.CheckAddition(left, right, out type))
+                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                    else return type;
                 case BinaryOperator.Subtract:
-                    if (left == ScriptType.Integer && right == ScriptType.Integer) return ScriptType.Integer;
-                    if (left == ScriptType.Decimal && right == ScriptType.Integer) return ScriptType.Decimal;
-                    if (left == ScriptType.Integer && right == ScriptType.Decimal) return ScriptType.Decimal;
-                    if (left == ScriptType.Decimal && right == ScriptType.Decimal) return ScriptType.Decimal;
-                    if (left == ScriptType.TimeSpan && right == ScriptType.TimeSpan) return ScriptType.TimeSpan;
-                    if (left == ScriptType.DateTime && right == ScriptType.DateTime) return ScriptType.TimeSpan;
-                    throw new ScriptError(0, 0, "Type error");
+                    if (!TypeChecker.CheckSubtraction(left, right, out type))
+                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                    else return type;
                 case BinaryOperator.Multiply:
-                    if (left == ScriptType.Integer && right == ScriptType.Integer) return ScriptType.Integer;
-                    if (left == ScriptType.Decimal && right == ScriptType.Integer) return ScriptType.Decimal;
-                    if (left == ScriptType.Integer && right == ScriptType.Decimal) return ScriptType.Decimal;
-                    if (left == ScriptType.Decimal && right == ScriptType.Decimal) return ScriptType.Decimal;
-                    if (left == ScriptType.TimeSpan && right == ScriptType.Decimal) return ScriptType.TimeSpan;
-                    if (left == ScriptType.Decimal && right == ScriptType.TimeSpan) return ScriptType.TimeSpan;
-                    if (left == ScriptType.TimeSpan && right == ScriptType.Integer) return ScriptType.TimeSpan;
-                    if (left == ScriptType.Integer && right == ScriptType.TimeSpan) return ScriptType.TimeSpan;
-                    throw new ScriptError(0, 0, "Type error");
+                    if (!TypeChecker.CheckMultiplication(left, right, out type))
+                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                    else return type;
                 case BinaryOperator.Divide:
-                    if (left == ScriptType.Integer && right == ScriptType.Integer) return ScriptType.Decimal;
-                    if (left == ScriptType.Decimal && right == ScriptType.Integer) return ScriptType.Decimal;
-                    if (left == ScriptType.Integer && right == ScriptType.Decimal) return ScriptType.Decimal;
-                    if (left == ScriptType.Decimal && right == ScriptType.Decimal) return ScriptType.Decimal;
-                    if (left == ScriptType.TimeSpan && right == ScriptType.Decimal) return ScriptType.TimeSpan;
-                    if (left == ScriptType.TimeSpan && right == ScriptType.Integer) return ScriptType.TimeSpan;
-                    throw new ScriptError(0, 0, "Type error");
+                    if (!TypeChecker.CheckDivision(left, right, out type))
+                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                    else return type;
+                case BinaryOperator.DivideAndTruncate:
+                    if (!TypeChecker.CheckDivisionAndTruncate(left, right, out type))
+                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                    else return type;
                 case BinaryOperator.CompareNotEqual:
                 case BinaryOperator.CompareEqual:
-                    if (left == ScriptType.Decimal && right == ScriptType.Integer)
-                        ;//warn;
-                    if (left == ScriptType.Integer && right == ScriptType.Decimal)
-                        ;//warn
-                    if(left != right)
-                    {
-                        throw new ScriptError(0, 0, "Type error");
-                    }
-                    return ScriptType.Bool;
+                    if (!TypeChecker.CheckCompareEqual(left, right, out type))
+                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                    else return type;
                 case BinaryOperator.Greater:
                 case BinaryOperator.GreaterOrEqual:
                 case BinaryOperator.Less:
                 case BinaryOperator.LessOrEqual:
-                    if (left == ScriptType.Integer && right == ScriptType.Integer) return ScriptType.Bool;
-                    if (left == ScriptType.Decimal && right == ScriptType.Decimal) return ScriptType.Bool;
-                    if (left == ScriptType.Decimal && right == ScriptType.Integer) return ScriptType.Bool; // warn
-                    if (left == ScriptType.Integer && right == ScriptType.Decimal) return ScriptType.Bool; // warn
-                    if (left == ScriptType.String && right == ScriptType.String) return ScriptType.Bool;
-                    if (left == ScriptType.TimeSpan && right == ScriptType.TimeSpan) return ScriptType.Bool;
-                    if (left == ScriptType.DateTime && right == ScriptType.DateTime) return ScriptType.Bool;
-                    throw new ScriptError(0, 0, "Type error");
+                    if (!TypeChecker.CheckCompareOrder(left, right, out type))
+                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                    else return type;
                 case BinaryOperator.And:
                 case BinaryOperator.Or:
-                    if (left == ScriptType.Bool && right == ScriptType.Bool) return ScriptType.Bool;
-                    throw new ScriptError(0, 0, "Type error");
+                    if (!TypeChecker.CheckAndOr(left, right, out type))
+                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                    else return type;
+                default:
+                    throw new ScriptError(e.Token.Column, e.Token.Line, "Internal compiler error");
             }
-            return left;
         }
 
         ScriptType ResolveUnaryExpression(UnaryExpression e, Symbols symbols)
         {
             var right = Resolve(e.Right, symbols);
-            if(e.Operator == UnaryOperator.Not)
+            var type = ScriptType.Null;
+            switch (e.Operator)
             {
-                if (right == ScriptType.Bool)
-                {
-                    return ScriptType.Bool;
-                }
-                throw new ScriptError(0, 0, "Type error");
+                case UnaryOperator.Not:
+                    if (!TypeChecker.CheckNot(right, out type))
+                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                    return type;
+                case UnaryOperator.Plus:
+                case UnaryOperator.Minus:
+                    if (!TypeChecker.CheckNot(right, out type))
+                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                    return type;
+                default:
+                    throw new ScriptError(0, 0, "Internal compiler error");
             }
-
-            if (right == ScriptType.Integer || right == ScriptType.Decimal)
-            {
-                return right;
-            }
-            throw new ScriptError(0, 0, "Type error");
         }
 
         ScriptType ResolveAssignmentExpression(AssignmentExpression e, Symbols symbols)
@@ -161,7 +142,9 @@ namespace CalculatedField
             else
             { 
                 e.Location = variable.Location;
-                return CoerceTypes(variable.Type, rightType);
+                if (TypeChecker.CheckAssignment(variable.Type, rightType, out var type))
+                    throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                return type;
             }
         }
 
@@ -170,7 +153,7 @@ namespace CalculatedField
             var variable = symbols.GetVariable(e.Name);
             if(variable == null)
             {
-                throw new ScriptError(0, 0, $"Can't use unassigned variable ({e.Name})");
+                throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't use unassigned variable ({e.Name})");
             }
             else
             {
@@ -192,7 +175,7 @@ namespace CalculatedField
                 }
                 else
                 {
-                    throw new ScriptError(0, 0, $"Field is not defined ({e.Name})");
+                    throw new ScriptError(e.Token.Column, e.Token.Line, $"Field is not defined ({e.Name})");
                 }
             }
             else
@@ -210,15 +193,14 @@ namespace CalculatedField
             var conditionType = Resolve(e.Condition, symbols);
             if(conditionType != ScriptType.Bool)
             {
-                throw new ScriptError(0, 0, "Conditional must be a boolean value or expression");
+                throw new ScriptError(e.Token.Column, e.Token.Line, "Conditional must be a boolean value or expression");
             }
             var thenType = Resolve(e.ThenExpression, symbols);
-            var elseType = ScriptType.Null;
-            if (e.ElseExpression != null)
-            {
-                elseType = Resolve(e.ElseExpression, symbols);
-            }
-            return CoerceTypes(thenType, elseType);
+            var elseType = Resolve(e.ElseExpression, symbols);
+            // only an error if used in an expression
+            TypeChecker.CheckIfBranches(thenType, elseType, out var type);
+            return type;
+
         }
 
         ScriptType ResolveFunctionCallExpression(FunctionExpression e, Symbols symbols)
@@ -236,21 +218,12 @@ namespace CalculatedField
                 if(location == -1)
                 {
                     // error
-                    throw new ScriptError(0, 0, "Function not found");
+                    throw new ScriptError(e.Token.Column, e.Token.Line, "Function not found");
                 }
             }
             e.Location = location;
             var function = symbols.GetScriptFunction(location);
             return function.ReturnType;
         }
-
-        public static ScriptType CoerceTypes(ScriptType a, ScriptType b)
-        {
-            if (a == ScriptType.Decimal && b == ScriptType.Integer) return ScriptType.Decimal;
-            if (a == ScriptType.Integer && b == ScriptType.Decimal) return ScriptType.Decimal;
-            if (a == b) return a;
-            throw new ScriptError(0, 0, "Type error");
-        }
-
     }
 }

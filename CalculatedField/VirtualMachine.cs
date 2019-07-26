@@ -51,6 +51,13 @@ namespace CalculatedField
                             Push(left / right);
                             break;
                         }
+                    case Instruction.DivideAndTruncate:
+                        {
+                            var right = Pop();
+                            var left = Pop();
+                            Push(left % right);
+                            break;
+                        }
                     case Instruction.Negate:
                         {
                             var value = Pop();

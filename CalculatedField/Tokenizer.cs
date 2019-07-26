@@ -26,6 +26,7 @@ namespace CalculatedField
         StringLiteral,
         DecimalLiteral,
         IntegerLiteral,
+        DateTimeLiteral, 
         Null,
         True,
         False,
@@ -79,12 +80,12 @@ namespace CalculatedField
 
             TokenDefinitions.Add(ws);
             TokenDefinitions.Add(new TokenDefinition("\r?\n", TokenType.Newline));
-            TokenDefinitions.Add(new TokenDefinition("\\<<[\\w\\s]*>>", TokenType.Field));
+            TokenDefinitions.Add(new TokenDefinition("{[\\w\\s]*}", TokenType.Field));
             TokenDefinitions.Add(new TokenDefinition("\\+", TokenType.Plus));
             TokenDefinitions.Add(new TokenDefinition("\\-", TokenType.Minus));
             TokenDefinitions.Add(new TokenDefinition("\\*", TokenType.Star));
             TokenDefinitions.Add(new TokenDefinition("/", TokenType.Slash));
-            TokenDefinitions.Add(new TokenDefinition("%", TokenType.Percent));
+            TokenDefinitions.Add(new TokenDefinition("\\%", TokenType.Percent));
             TokenDefinitions.Add(new TokenDefinition("==", TokenType.EqualEqual));
             TokenDefinitions.Add(new TokenDefinition("<>", TokenType.LessGreater));
             TokenDefinitions.Add(new TokenDefinition("<=", TokenType.LessEqual));
@@ -97,7 +98,8 @@ namespace CalculatedField
             TokenDefinitions.Add(new TokenDefinition(",", TokenType.Comma));
             TokenDefinitions.Add(new TokenDefinition("\"([^\"\\\\]|\\\\.)*\"", TokenType.StringLiteral));
             TokenDefinitions.Add(new TokenDefinition("'([^'\\\\]|\\\\.)*'", TokenType.StringLiteral));
-            TokenDefinitions.Add(new TokenDefinition("[0-9]+\\.[0-9]+", TokenType.DecimalLiteral));
+            TokenDefinitions.Add(new TokenDefinition("#(.*?)#", TokenType.DateTimeLiteral));
+            TokenDefinitions.Add(new TokenDefinition("[0-9]+(\\.[0-9]+)?", TokenType.DecimalLiteral));
             TokenDefinitions.Add(new TokenDefinition("[0-9]+", TokenType.IntegerLiteral));
             TokenDefinitions.Add(new TokenDefinition("true", TokenType.True));
             TokenDefinitions.Add(new TokenDefinition("false", TokenType.False));
@@ -144,7 +146,7 @@ namespace CalculatedField
                 else
                 {
                     var value = source.Substring(currentIndex, matchLength);
-                    if(matchedDefinition.Type == TokenType.StringLiteral)
+                    if(matchedDefinition.Type == TokenType.StringLiteral || matchedDefinition.Type == TokenType.DateTimeLiteral)
                     {
                         value = value.Substring(1, value.Length - 2); // strip quotes
                     }
