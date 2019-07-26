@@ -59,8 +59,6 @@ namespace CalculatedField
         }
     }
 
-
-
     class IdentifierExpression : Syntax
     {
         public readonly string Name;

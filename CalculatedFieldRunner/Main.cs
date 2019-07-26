@@ -6,11 +6,30 @@ namespace CalculatedField
     {
         static void Main(string[] args)
         {
-            FileWatcher watcher = new FileWatcher("..\\..\\..\\", "test.script");
-            watcher.StartWatch();
-
-            Console.WriteLine("Press any key to continue...");
-            System.Console.Read();
+            Engine engine = new Engine();
+            var script = "";
+            while(true)
+            {
+                var line = Console.ReadLine();
+                if(line.EndsWith(";"))
+                {
+                    script = script + line.TrimEnd(';');
+                    try
+                    {
+                        var value = engine.CalculateValue(script);
+                        Console.WriteLine(value.Value ?? "null");
+                    }
+                    catch(Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
+                    script = "";
+                }
+                else
+                {
+                    script = script + line + "\r\n";
+                }
+            }
         }
 
         public static string func(int x, string y)

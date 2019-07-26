@@ -22,8 +22,6 @@
         PushVariable,
         PushField,
         Store,
-        JumpOnFalse,
-        Jump,
         Call,
     }
 }

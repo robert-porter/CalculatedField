@@ -67,7 +67,7 @@
 
         public static ScriptValue operator !(ScriptValue right)
         {
-            if(right.Type == ScriptType.Bool)
+            if(right.Type == ScriptType.Boolean)
                 return new ScriptValue(!right.BoolValue);
             return new ScriptValue();
         }
@@ -75,7 +75,7 @@
         // logical and
         public static ScriptValue operator &(ScriptValue left, ScriptValue right)
         {
-            if (left.Type == ScriptType.Bool && right.Type == ScriptType.Bool)
+            if (left.Type == ScriptType.Boolean && right.Type == ScriptType.Boolean)
                 return new ScriptValue(left.BoolValue && right.BoolValue);
             return new ScriptValue();
 
@@ -84,7 +84,7 @@
         //logcal or
         public static ScriptValue operator |(ScriptValue left, ScriptValue right)
         {
-            if (left.Type == ScriptType.Bool && right.Type == ScriptType.Bool)
+            if (left.Type == ScriptType.Boolean && right.Type == ScriptType.Boolean)
                 return new ScriptValue(left.BoolValue || right.BoolValue);
             return new ScriptValue();
         }
@@ -130,7 +130,7 @@
             if (left.Type != right.Type) return new ScriptValue(false);
             switch(left.Type)
             {
-                case ScriptType.Bool: return new ScriptValue(left.BoolValue == right.BoolValue);
+                case ScriptType.Boolean: return new ScriptValue(left.BoolValue == right.BoolValue);
                 case ScriptType.DateTime: return new ScriptValue(left.DateTimeValue == right.DateTimeValue);
                 case ScriptType.Number: return new ScriptValue(left.NumberValue == right.NumberValue);
                 case ScriptType.String: return new ScriptValue(left.StringValue == right.StringValue);

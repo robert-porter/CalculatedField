@@ -53,7 +53,7 @@ namespace CalculatedField
 
         public static bool CheckCompareEqual(ScriptType left, ScriptType right, out ScriptType scriptType)
         {
-            scriptType = ScriptType.Bool;
+            scriptType = ScriptType.Boolean;
             if (left != right)
             {
                 scriptType = ScriptType.Null;
@@ -65,18 +65,18 @@ namespace CalculatedField
         public static bool CheckCompareOrder(ScriptType left, ScriptType right, out ScriptType scriptType)
         {
             scriptType = ScriptType.Null;
-            if (left == ScriptType.Number && right == ScriptType.Number) scriptType = ScriptType.Bool;
-            if (left == ScriptType.String && right == ScriptType.String) scriptType = ScriptType.Bool;
-            if (left == ScriptType.TimeSpan && right == ScriptType.TimeSpan) scriptType = ScriptType.Bool;
-            if (left == ScriptType.DateTime && right == ScriptType.DateTime) scriptType = ScriptType.Bool;
+            if (left == ScriptType.Number && right == ScriptType.Number) scriptType = ScriptType.Boolean;
+            if (left == ScriptType.String && right == ScriptType.String) scriptType = ScriptType.Boolean;
+            if (left == ScriptType.TimeSpan && right == ScriptType.TimeSpan) scriptType = ScriptType.Boolean;
+            if (left == ScriptType.DateTime && right == ScriptType.DateTime) scriptType = ScriptType.Boolean;
             return scriptType != ScriptType.Null;
         }
 
         public static bool CheckAndOr(ScriptType left, ScriptType right, out ScriptType scriptType)
         {
-            if (left == ScriptType.Bool && right == ScriptType.Bool)
+            if (left == ScriptType.Boolean && right == ScriptType.Boolean)
             {
-                scriptType = ScriptType.Bool;
+                scriptType = ScriptType.Boolean;
                 return true;
             }
             else
@@ -88,9 +88,9 @@ namespace CalculatedField
 
         public static bool CheckNot(ScriptType right, out ScriptType scriptType)
         {
-            if (right == ScriptType.Bool)
+            if (right == ScriptType.Boolean)
             {
-                scriptType = ScriptType.Bool;
+                scriptType = ScriptType.Boolean;
                 return true;
             }
             else

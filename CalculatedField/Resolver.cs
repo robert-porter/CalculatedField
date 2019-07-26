@@ -64,40 +64,43 @@ namespace CalculatedField
             {
                 case BinaryOperator.Add:
                     if (!TypeChecker.CheckAddition(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't add {left} and {right}");
                     else return type;
                 case BinaryOperator.Subtract:
                     if (!TypeChecker.CheckSubtraction(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't subtract {left} and {right}");
                     else return type;
                 case BinaryOperator.Multiply:
                     if (!TypeChecker.CheckMultiplication(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't multiply {left} and {right}");
                     else return type;
                 case BinaryOperator.Divide:
                     if (!TypeChecker.CheckDivision(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't divide {left} and {right}");
                     else return type;
                 case BinaryOperator.DivideAndTruncate:
                     if (!TypeChecker.CheckDivisionAndTruncate(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't divide and truncate {left} and {right}");
                     else return type;
                 case BinaryOperator.CompareNotEqual:
                 case BinaryOperator.CompareEqual:
                     if (!TypeChecker.CheckCompareEqual(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't compare {left} and {right}");
                     else return type;
                 case BinaryOperator.Greater:
                 case BinaryOperator.GreaterOrEqual:
                 case BinaryOperator.Less:
                 case BinaryOperator.LessOrEqual:
                     if (!TypeChecker.CheckCompareOrder(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't compare {left} and {right}");
                     else return type;
                 case BinaryOperator.And:
+                    if (!TypeChecker.CheckAndOr(left, right, out type))
+                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't and {left} and {right}");
+                    else return type;
                 case BinaryOperator.Or:
                     if (!TypeChecker.CheckAndOr(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't or {left} and {right}");
                     else return type;
                 default:
                     throw new ScriptError(e.Token.Column, e.Token.Line, "Internal compiler error");
@@ -112,12 +115,15 @@ namespace CalculatedField
             {
                 case UnaryOperator.Not:
                     if (!TypeChecker.CheckNot(right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't not {right}");
                     return type;
                 case UnaryOperator.Plus:
+                    if (!TypeChecker.CheckNot(right, out type))
+                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't positive {right}");
+                    return type;
                 case UnaryOperator.Minus:
                     if (!TypeChecker.CheckNot(right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Type negative {right}");
                     return type;
                 default:
                     throw new ScriptError(0, 0, "Internal compiler error");
@@ -137,8 +143,8 @@ namespace CalculatedField
             else
             { 
                 e.Location = variable.Location;
-                if (TypeChecker.CheckAssignment(variable.Type, rightType, out var type))
-                    throw new ScriptError(e.Token.Column, e.Token.Line, "Type error");
+                if (!TypeChecker.CheckAssignment(variable.Type, rightType, out var type))
+                    throw new ScriptError(e.Token.Column, e.Token.Line, $"{e.Name} was previously assigned as {variable.Type} but is being assigned as {rightType}");
                 return type;
             }
         }
@@ -170,7 +176,7 @@ namespace CalculatedField
                 }
                 else
                 {
-                    throw new ScriptError(e.Token.Column, e.Token.Line, $"Field is not defined ({e.Name})");
+                    throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't use undefined field ({e.Name})");
                 }
             }
             else
@@ -198,7 +204,7 @@ namespace CalculatedField
                 if(location == -1)
                 {
                     // error
-                    throw new ScriptError(e.Token.Column, e.Token.Line, "Function not found");
+                    throw new ScriptError(e.Token.Column, e.Token.Line, $"Function not found {e.Name}({string.Join(", ", argumentTypes)})");
                 }
             }
             e.Location = location;

@@ -7,6 +7,6 @@
         String,
         DateTime,
         TimeSpan,
-        Bool
+        Boolean
     }
 }

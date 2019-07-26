@@ -57,7 +57,7 @@ namespace CalculatedField
                     var token = ts.Current();
                     if(token.Type != TokenType.Newline)
                     {
-                        throw new ScriptError(token.Column, token.Line, "Unexpected token");
+                        throw new ScriptError(token.Column, token.Line, $"Unexpected token {token.Contents} after the end of an expression");
                     }
                     else
                     {
@@ -174,7 +174,7 @@ namespace CalculatedField
             else if (ts.Match(TokenType.True) || ts.Match(TokenType.False))
             {
                 var token = ts.Read();
-                return new LiteralExpression(token.Contents, ScriptType.Bool, token);
+                return new LiteralExpression(token.Contents, ScriptType.Boolean, token);
             }
             else if (ts.Match(TokenType.StringLiteral))
             {
@@ -193,7 +193,9 @@ namespace CalculatedField
             }
             else 
             {
-                throw new ScriptError(ts.Column, ts.Line, string.Format("Unexpected token ", ts.Current().Contents));
+                if (ts.Match(TokenType.Equal))
+                    throw new ScriptError(ts.Column, ts.Line, $"An assignment statement must be at the start of a line");
+                throw new ScriptError(ts.Column, ts.Line, $"Unexpected token {ts.Current().Contents}");
             }
         }
     }

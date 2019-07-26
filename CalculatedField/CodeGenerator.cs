@@ -152,6 +152,8 @@ namespace CalculatedField
             Generate(assignment.Right);
             Instructions.Add(Instruction.Store);
             Instructions.Add((Instruction)assignment.Location);
+            Instructions.Add(Instruction.PushVariable);
+            Instructions.Add((Instruction)assignment.Location);
         }
 
         public void GenerateFunctionCallExpression(FunctionExpression call)

@@ -43,7 +43,7 @@ namespace CalculatedField
                 case ScriptType.String:
                     Value = Convert.ToString(value);
                     return;
-                case ScriptType.Bool:
+                case ScriptType.Boolean:
                     Value = Convert.ToBoolean(value);
                     return;
                 case ScriptType.DateTime:
@@ -67,7 +67,7 @@ namespace CalculatedField
 
         public ScriptValue(bool value)
         {
-            Type = ScriptType.Bool;
+            Type = ScriptType.Boolean;
             Value = value;
         }
 
@@ -95,7 +95,7 @@ namespace CalculatedField
             {
                 case ScriptType.Number:
                     return new ScriptValue(type, decimal.Parse(stringValue));
-                case ScriptType.Bool:
+                case ScriptType.Boolean:
                     return new ScriptValue(type, bool.Parse(stringValue));
                 case ScriptType.DateTime:
                     return new ScriptValue(type, DateTime.Parse(stringValue));
@@ -115,7 +115,7 @@ namespace CalculatedField
             if (type == typeof(string))
                 return ScriptType.String;
             if (type == typeof(bool?) || type == typeof(bool))
-                return ScriptType.Bool;
+                return ScriptType.Boolean;
             if (type == typeof(DateTime?) || type == typeof(DateTime))
                 return ScriptType.DateTime;
             return ScriptType.Null;

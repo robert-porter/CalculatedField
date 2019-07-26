@@ -159,7 +159,7 @@ namespace UnitTests
         {
             var engine = new Engine();
             var field = new Field();
-            field.Type = ScriptType.Bool;
+            field.Type = ScriptType.Boolean;
             field.Script = "true and true";
             var compiledScript = engine.Compile(field, new List<Field>());
             var value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());

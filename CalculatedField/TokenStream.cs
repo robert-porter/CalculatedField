@@ -81,7 +81,11 @@ namespace CalculatedField
                 Index++;
                 return token;
             }
-            throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, string.Format("Expected {0}, found {1}", type, Tokens[Index].Type));
+            if(Tokens[Index].Type == TokenType.Equal)
+            {
+                throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, "An assignemnt statement must be on the left hand side of a line");
+            }
+            throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, $"Unexpected token {Tokens[Index].Contents}");
         }
     }
 }

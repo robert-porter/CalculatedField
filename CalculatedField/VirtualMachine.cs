@@ -133,57 +133,44 @@ namespace CalculatedField
                         }
                     case Instruction.PushConstant:
                         {
-                            int location = ReadNextInstruction();
+                            int location = ReadLocation();
                             var value = constants[location];
                             Push(value);
                             break;
                         }
                     case Instruction.PushVariable:
                         {
-                            int location = ReadNextInstruction();
+                            int location = ReadLocation();
                             var value = variables[location];
                             Push(value);
                             break;
                         }
                     case Instruction.PushField:
                         {
-                            int location = ReadNextInstruction();
+                            int location = ReadLocation();
                             var value = fields[location];
                             Push(value);
                             break;
                         }
                     case Instruction.Store:
                         {
-                            int location = ReadNextInstruction();
+                            int location = ReadLocation();
                             var value = Pop();
                             variables[location] = value;
                             break;
                         }
-                    case Instruction.JumpOnFalse:
-                        {
-                            int jumpLocation = ReadNextInstruction();
-                            var value = Pop();
-                            if (!value.BoolValue)
-                                ip = (int)jumpLocation;
-                            continue;
-                        }
-                    case Instruction.Jump:
-                        {
-                            int jumpLocation = ReadNextInstruction();
-                            ip = jumpLocation;
-                            continue;
-                        }
                     case Instruction.Call:
                         {
-                            int location = ReadNextInstruction();
+                            int location = ReadLocation();
                             var function = functions[location];
                             var argumentCount = function.ArgumentTypes.Count;
                             var arguments = new ScriptValue[argumentCount];
                             for (var i = 0; i < argumentCount; i++)
                             {
-                                arguments[i] = Pop();
+                                // reverse the order
+                                arguments[argumentCount - i - 1] = Pop();
                             }
-                            var value = function.Call(arguments.Reverse().ToArray());
+                            var value = function.Call(arguments);
                             Push(value);
                             break;
                         }
@@ -205,7 +192,7 @@ namespace CalculatedField
                 return stack.Pop();
             }
 
-            int ReadNextInstruction()
+            int ReadLocation()
             {
                 return (int)instructions[++ip];
             }

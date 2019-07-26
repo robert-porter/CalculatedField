@@ -117,11 +117,11 @@ namespace CalculatedField
             return s.Length;
         }
 
-        public static string character(string s, int i)
+        public static string @char(string s, decimal? i)
         {
-            if (s == null) return null;
-            if (i < 0 || i >= s.Length) return "";
-            return s?.Substring(i, i + 1);
+            if (s == null || i == 0) return null;
+            if (i < 0 || i >= s.Length) return null;
+            return s?.Substring((int)i, (int)1);
         }
 
         public static string concat(string a, string b)
@@ -138,13 +138,13 @@ namespace CalculatedField
             return a.Contains(b);
         }
 
-        public static string substring(string s, int startIndex, int length)
+        public static string substring(string s, decimal? startIndex, decimal? length)
         {
-            if (s == null) return null;
-            if (startIndex < 0 || length < 0) return "";
-            if (startIndex >= s.Length) return "";
+            if (s == null || startIndex == null || length == null) return null;
+            if (startIndex < 0 || length < 0) return null;
+            if (startIndex >= s.Length) return null;
             if (startIndex + length >= s.Length) length = s.Length - startIndex;
-            return s.Substring(startIndex, length);
+            return s.Substring((int)startIndex, (int)length);
         }
 
         public static string trim(string s)
