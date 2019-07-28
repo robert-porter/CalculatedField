@@ -1,28 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
 
 namespace CalculatedField
 {
     class Resolver 
     {   
-        public void ResolveProgram(ScriptExpression script, Symbols symbols)
-        {
-            ScriptType type;
-            if (script.Expressions.Count == 0)
-                type = ScriptType.Null;
-            else
-            {
-                for (var i = 0; i < script.Expressions.Count - 1; i++)
-                    Resolve(script.Expressions[i], symbols);
-                type = Resolve(script.Expressions[script.Expressions.Count - 1], symbols);
-            }
-            var field = symbols.GetField();
-            if (field != null)
-            {
-                if (type != field.Type)
-                    throw new ScriptError(0, 0, $"The script calculates a {type} but the field is a {field.Type}");
-            }
-        }
-        public ScriptType Resolve(Syntax expression, Symbols symbols)
+        public Type Resolve(Syntax expression, Symbols symbols)
         {
             switch (expression)
             {
@@ -32,184 +16,297 @@ namespace CalculatedField
                     return ResolveBinaryExpression(e, symbols);
                 case UnaryExpression e:
                     return ResolveUnaryExpression(e, symbols);
-                case AssignmentStatement e:
-                    return ResolveAssignmentExpression(e, symbols);
                 case FunctionExpression e:
                     return ResolveFunctionCallExpression(e, symbols);
-                case IdentifierExpression e:
-                    return ResolveIdentifierExpression(e, symbols);
                 case FieldExpression e:
                     return ResolveFieldExpression(e, symbols);
                 default:
-                    throw new ScriptError(0, 0, "Internal compiler error");
+                    return null;
             }
         }
 
-        ScriptType ResolveLiteralExpression(LiteralExpression  e, Symbols symbols)
+        Type ResolveLiteralExpression(LiteralExpression  e, Symbols symbols)
         {
-            var value = e.ScriptValue;
-            var location = symbols.GetConstantLocation(value);
-            if (location == -1)
-                location = symbols.AddConstant(value);
-            e.Location = location;
             return e.Type;
         }
 
-        ScriptType ResolveBinaryExpression(BinaryExpression e, Symbols symbols)
+        Type ResolveBinaryExpression(BinaryExpression e, Symbols symbols)
         {
             var left = Resolve(e.Left, symbols);
             var right = Resolve(e.Right, symbols);
-            ScriptType type = ScriptType.Null;
+            Type type = null;
             switch (e.Operator)
             {
                 case BinaryOperator.Add:
-                    if (!TypeChecker.CheckAddition(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't add {left} and {right}");
-                    else return type;
+                    type = ResolveAdd(e, left, right);
+                    break;
                 case BinaryOperator.Subtract:
-                    if (!TypeChecker.CheckSubtraction(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't subtract {left} and {right}");
-                    else return type;
+                    type = CheckSubtract(left, right);
+                    break;
                 case BinaryOperator.Multiply:
-                    if (!TypeChecker.CheckMultiplication(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't multiply {left} and {right}");
-                    else return type;
+                    type = CheckMultiply(left, right);
+                    break;
                 case BinaryOperator.Divide:
-                    if (!TypeChecker.CheckDivision(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't divide {left} and {right}");
-                    else return type;
+                    type = CheckDivide(left, right);
+                    break;
                 case BinaryOperator.DivideAndTruncate:
-                    if (!TypeChecker.CheckDivisionAndTruncate(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't divide and truncate {left} and {right}");
-                    else return type;
+                    type = CheckDivideThenTruncate(left, right);
+                    break;
                 case BinaryOperator.CompareNotEqual:
                 case BinaryOperator.CompareEqual:
-                    if (!TypeChecker.CheckCompareEqual(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't compare {left} and {right}");
-                    else return type;
+                    type = CheckCompareEqual(left, right);
+                    break;
                 case BinaryOperator.Greater:
                 case BinaryOperator.GreaterOrEqual:
                 case BinaryOperator.Less:
                 case BinaryOperator.LessOrEqual:
-                    if (!TypeChecker.CheckCompareOrder(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't compare {left} and {right}");
-                    else return type;
+                    type = CheckCompareOrder(left, right);
+                    break;
                 case BinaryOperator.And:
-                    if (!TypeChecker.CheckAndOr(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't and {left} and {right}");
-                    else return type;
+                    type = CheckAndOr(left, right);
+                    break;
                 case BinaryOperator.Or:
-                    if (!TypeChecker.CheckAndOr(left, right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't or {left} and {right}");
-                    else return type;
-                default:
-                    throw new ScriptError(e.Token.Column, e.Token.Line, "Internal compiler error");
+                    type = CheckAndOr(left, right);
+                    break;
             }
+            e.Type = type;
+            if (type == null)
+                throw new ScriptError(e.Token.Column, e.Token.Line, $"Operator {e.Token.Contents} is not defined on {left} and {right}");
+            else return type;
         }
 
-        ScriptType ResolveUnaryExpression(UnaryExpression e, Symbols symbols)
+        Type ResolveUnaryExpression(UnaryExpression e, Symbols symbols)
         {
             var right = Resolve(e.Right, symbols);
-            var type = ScriptType.Null;
+            Type type = null;
             switch (e.Operator)
             {
                 case UnaryOperator.Not:
-                    if (!TypeChecker.CheckNot(right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't not {right}");
-                    return type;
+                    type = CheckNot(right);
+                    break;
                 case UnaryOperator.Plus:
-                    if (!TypeChecker.CheckNot(right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't positive {right}");
-                    return type;
+                    type = CheckUnaryPlus(right);
+                    break;
                 case UnaryOperator.Minus:
-                    if (!TypeChecker.CheckNot(right, out type))
-                        throw new ScriptError(e.Token.Column, e.Token.Line, $"Type negative {right}");
-                    return type;
-                default:
-                    throw new ScriptError(0, 0, "Internal compiler error");
+                    type = CheckUnaryMinus(right);
+                    break;
             }
+            e.Type = type;
+            if (type == null)
+                throw new ScriptError(e.Token.Column, e.Token.Line, $"Operator {e.Token.Contents} is not defined on {right}");
+            return type;
         }
 
-        ScriptType ResolveAssignmentExpression(AssignmentStatement e, Symbols symbols)
+        Type ResolveFieldExpression(FieldExpression e, Symbols symbols)
         {
-            var rightType = Resolve(e.Right, symbols);
-            var variable = symbols.GetVariable(e.Name);
-            if(variable == null)
-            {
-                int location = symbols.AddVariable(e.Name, rightType);
-                e.Location = location;
-                return rightType;
-            }
-            else
-            { 
-                e.Location = variable.Location;
-                if (!TypeChecker.CheckAssignment(variable.Type, rightType, out var type))
-                    throw new ScriptError(e.Token.Column, e.Token.Line, $"{e.Name} was previously assigned as {variable.Type} but is being assigned as {rightType}");
-                return type;
-            }
-        }
-
-        ScriptType ResolveIdentifierExpression(IdentifierExpression e, Symbols symbols)
-        {
-            var variable = symbols.GetVariable(e.Name);
-            if(variable == null)
-            {
-                throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't use unassigned variable ({e.Name})");
-            }
-            else
-            {
-                e.Location = variable.Location;
-                return variable.Type;
-            }
-        }
-
-        ScriptType ResolveFieldExpression(FieldExpression e, Symbols symbols)
-        {
-            int location = symbols.GetScriptFieldLocation(e.Name);
-            Field field = null;
-            if (location == -1)
-            {
-                field = symbols.GetFields().Find(f => f.Name == e.Name);
-                if (field != null)
-                {
-                    location = symbols.AddScriptField(field);
-                }
-                else
-                {
-                    throw new ScriptError(e.Token.Column, e.Token.Line, $"Can't use undefined field ({e.Name})");
-                }
-            }
-            else
-            {
-                field = symbols.GetScriptFields()[location];
-            }
-
-            e.Location = location;
+            Field field = symbols.GetField(e.Name);
+            symbols.AddScriptField(field);
+            e.Type = field.Type;
             return field.Type;
-
         }
 
-        ScriptType ResolveFunctionCallExpression(FunctionExpression e, Symbols symbols)
+        Type ResolveFunctionCallExpression(FunctionExpression e, Symbols symbols)
         {
-            var argumentTypes = new List<ScriptType>();
+            var arguments = new List<Type>();
             foreach(var argument in e.Arguments)
             {
                 var type = Resolve(argument, symbols);
-                argumentTypes.Add(type);
+                arguments.Add(type);
             }
-            var location = symbols.GetFunctionLocation(e.Name, argumentTypes);
-            if(location == -1)
+            var function = symbols.GetFunction(e.Name, arguments);
+            if (function == null)
             {
-                location = symbols.AddFunction(e.Name, argumentTypes);
-                if(location == -1)
-                {
-                    // error
-                    throw new ScriptError(e.Token.Column, e.Token.Line, $"Function not found {e.Name}({string.Join(", ", argumentTypes)})");
-                }
+                throw new ScriptError(e.Token.Column, e.Token.Line, $"Function not found {e.Name}({string.Join(", ", arguments)})");
             }
-            e.Location = location;
-            var function = symbols.GetScriptFunction(location);
+            else
+            {
+                e.Method = function;
+            }
+            e.Type = function.ReturnType;
             return function.ReturnType;
         }
+
+        public static Type CheckUnaryPlus(Type right)
+        {
+
+            if (right == typeof(decimal?) || right == typeof(decimal))
+                return typeof(decimal?);
+            return null;
+        }
+
+        public static Type CheckUnaryMinus(Type right)
+        {
+
+            if (right == typeof(decimal?) || right == typeof(decimal))
+                return typeof(decimal?);
+            return null;
+        }
+
+        public static Type ResolveAdd(BinaryExpression e, Type left, Type right)
+        {
+            Type type = null;
+            if (left == typeof(decimal?) || left == typeof(decimal) &&
+                right == typeof(decimal?) || right == typeof(decimal))
+                return typeof(decimal?);
+            if (left == typeof(DateTime?) || left == typeof(DateTime) &&
+                right == typeof(TimeSpan?) || right == typeof(TimeSpan))
+                return typeof(DateTime?);
+            if (left == typeof(TimeSpan?) || left == typeof(TimeSpan) &&
+                right == typeof(TimeSpan?) || right == typeof(TimeSpan))
+                return typeof(TimeSpan?);
+            if (left == typeof(string) && right == typeof(string))
+            {
+                var method = typeof(LibString).GetMethod("concat");
+                e.Method = method;
+                return typeof(string);
+            }
+            else
+            {
+                /*
+                var methods = left.GetMethods();
+                var addition = Array.Find(methods, method =>
+                {
+                    var parameters = method.GetParameters();
+                    if (method.Name == "op_Addition" && parameters.Length == 2 &&
+                        parameters[0].ParameterType == left && parameters[1].ParameterType == right)
+                        return true;
+                    return false;
+                });
+                if (addition != null)
+                {
+                    //e.Method = addition;
+                    return addition.ReturnType;
+                }
+                methods = right.GetMethods();
+                addition = Array.Find(methods, method =>
+                {
+                    var parameters = method.GetParameters();
+                    if (method.Name == "op_Addition" && parameters.Length == 2 &&
+                        parameters[0].ParameterType == left && parameters[1].ParameterType == right)
+                        return true;
+                    return false;
+                });
+                if (addition != null)
+                {
+                    //e.Method = addition;
+                    return addition.ReturnType;
+                } */
+            }
+            return type;
+        }
+
+        public static Type CheckSubtract(Type left, Type right)
+        {
+
+            if (left == typeof(decimal?) || left == typeof(decimal) &&
+                right == typeof(decimal?) || right == typeof(decimal))
+                return typeof(decimal?);
+            if (left == typeof(TimeSpan?) || left == typeof(TimeSpan) &&
+                right == typeof(TimeSpan?) || right == typeof(TimeSpan))
+                return typeof(TimeSpan?);
+            if (left == typeof(DateTime?) || left == typeof(DateTime) &&
+                right == typeof(DateTime?) || right == typeof(DateTime))
+                return typeof(TimeSpan?);
+            return null;
+        }
+
+        public static Type CheckMultiply(Type left, Type right)
+        {
+
+            if (left == typeof(decimal?) || left == typeof(decimal) &&
+                right == typeof(decimal?) || right == typeof(decimal))
+                return typeof(decimal?);
+            return null;
+        }
+
+        public static Type CheckDivide(Type left, Type right)
+        {
+
+            if (left == typeof(decimal?) || left == typeof(decimal) &&
+                right == typeof(decimal?) || right == typeof(decimal))
+                return typeof(decimal?);
+
+            return null;
+        }
+
+        public static Type CheckDivideThenTruncate(Type left, Type right)
+        {
+
+            if (left == typeof(decimal?) || left == typeof(decimal) &&
+                right == typeof(decimal?) || right == typeof(decimal))
+                return typeof(decimal?);
+            return null;
+        }
+
+        public static Type CheckNot(Type right)
+        {
+            if (right == typeof(bool?) || right == typeof(bool))
+                return typeof(bool?);
+            return null;
+        }
+
+        public static Type CheckAndOr(Type left, Type right)
+        {
+            if (left == typeof(bool?) || left == typeof(bool) && right == typeof(bool?) || right == typeof(bool))
+                return typeof(bool?);
+            return null;
+        }
+
+        public static Type CheckCompareOrder(Type left, Type right)
+        {
+            if (left == typeof(decimal?) || left == typeof(decimal) &&
+                right == typeof(decimal?) || right == typeof(decimal))
+                return typeof(bool?);
+            if (left == typeof(string) && right == typeof(string))
+                return typeof(bool?);
+            if (left == typeof(TimeSpan?) || left == typeof(TimeSpan) &&
+                right == typeof(TimeSpan?) || right == typeof(TimeSpan))
+                return typeof(bool?);
+            if (left == typeof(DateTime?) || left == typeof(DateTime) &&
+                right == typeof(DateTime?) || right == typeof(DateTime))
+                return typeof(bool?);
+            return null;
+        }
+
+        public static Type CheckCompareEqual(Type left, Type right)
+        {
+            if (left == typeof(bool?) && right == typeof(bool?))
+                return typeof(bool?);
+            if (left == typeof(decimal?) || left == typeof(decimal) &&
+                right == typeof(decimal?) || right == typeof(decimal))
+                return typeof(bool?);
+            if (left == typeof(string) && right == typeof(string))
+                return typeof(bool?);
+            if (left == typeof(TimeSpan?) || left == typeof(TimeSpan) &&
+                right == typeof(TimeSpan?) || right == typeof(TimeSpan))
+                return typeof(bool?);
+            if (left == typeof(DateTime?) || left == typeof(DateTime) &&
+                right == typeof(DateTime?) || right == typeof(DateTime))
+                return typeof(bool?);
+            return null;
+        }
+
+        public MethodInfo GetBinaryOperatorMethod(Type left, Type right)
+        {
+            return null;
+            /*
+== op_Equality
+!= op_Inequality
+>  op_GreaterThan
+<  op_LessThan
+>= op_GreaterThanOrEqual
+<= op_LessThanOrEqual
++  op_Addition
+-  op_Subtraction
+/  op_Division
+%  op_Modulus
+*  op_Multiply
+-  op_UnaryNegation
++  op_UnaryPlus
+!  op_LogicalNot
+
+            */
+        }
+
     }
 }

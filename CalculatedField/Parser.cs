@@ -14,7 +14,7 @@ namespace CalculatedField
             BinaryOperatorTable.Add(new Dictionary<TokenType, BinaryOperator> { [TokenType.And] = BinaryOperator.And });
             BinaryOperatorTable.Add(new Dictionary<TokenType, BinaryOperator>
             {
-                [TokenType.EqualEqual] = BinaryOperator.CompareEqual,
+                [TokenType.Equal] = BinaryOperator.CompareEqual,
                 [TokenType.LessGreater] = BinaryOperator.CompareNotEqual 
             });
             BinaryOperatorTable.Add(new Dictionary<TokenType, BinaryOperator>
@@ -45,46 +45,7 @@ namespace CalculatedField
             };
         }
 
-        public ScriptExpression Parse(TokenStream ts)
-        {
-            var firstToken = ts.Peek();
-            var expressions = new List<Syntax>();
-            while (!ts.EOF())
-            {
-                var statement = ParseStatement(ts);
-                if (!ts.EOF())
-                {
-                    var token = ts.Current();
-                    if(token.Type != TokenType.Newline)
-                    {
-                        throw new ScriptError(token.Column, token.Line, $"Unexpected token {token.Contents} after the end of an expression");
-                    }
-                    else
-                    {
-                        ts.Read();
-                    }
-                }
-                expressions.Add(statement);
-            }
-            return new ScriptExpression(expressions, firstToken);
-        }
-
-        Syntax ParseStatement(TokenStream ts)
-        {
-            if (ts.Match(TokenType.Identifier) && ts.Match(TokenType.Equal, 1))
-            {
-                var token = ts.Read();
-                ts.Expect(TokenType.Equal);
-                var right = ParseExpression(ts);
-                return new AssignmentStatement(token.Contents, right, token);
-            }
-            else
-            {
-                return ParseExpression(ts);
-            }
-        }
-
-        Syntax ParseExpression(TokenStream ts)
+        public Syntax Parse(TokenStream ts)
         {
             return ParseBinaryExpression(ts, 0);
         }
@@ -95,12 +56,12 @@ namespace CalculatedField
                 return ParseUnaryExpression(ts);
 
             Syntax left = ParseBinaryExpression(ts, precedence + 1);
-            while (BinaryOperatorTable[precedence].ContainsKey(ts.PeekType()))
+            while (BinaryOperatorTable[precedence].ContainsKey(ts.Peek().Type))
             {
-                var binaryOperator = BinaryOperatorTable[precedence][ts.PeekType()];
+                var binaryOperator = BinaryOperatorTable[precedence][ts.Peek().Type];
                 var token = ts.Read();
                 var right = ParseBinaryExpression(ts, precedence + 1);
-                if (BinaryOperatorTable[precedence].ContainsKey(ts.PeekType()))
+                if (BinaryOperatorTable[precedence].ContainsKey(ts.Peek().Type))
                 {
                     left = new BinaryExpression(binaryOperator, left, right, token);
                 }
@@ -114,88 +75,49 @@ namespace CalculatedField
 
         Syntax ParseUnaryExpression(TokenStream ts)
         {
-            if (!UnaryOperatorTable.ContainsKey(ts.PeekType()))
+            var token = ts.Peek();
+            if (!UnaryOperatorTable.ContainsKey(token.Type))
                 return ParseFactor(ts);
             else 
             {
-                var unaryOperator = UnaryOperatorTable[ts.PeekType()];
-                var token = ts.Read();
+                var unaryOperator = UnaryOperatorTable[token.Type];
+                ts.Read();
                 var right = ParseUnaryExpression(ts);
                 return new UnaryExpression(unaryOperator, right, token);
             }
         }
 
-        Syntax ParseFunctionCall(TokenStream ts)
-        {
-            var token = ts.Read();
-            ts.Expect(TokenType.OpenParen);
-            List<Syntax> arguments = new List<Syntax>();
-            while (!ts.Match(TokenType.CloseParen))
-            {
-                arguments.Add(ParseExpression(ts));
-                if (!ts.Match(TokenType.CloseParen))
-                    ts.Expect(TokenType.Comma);
-            }
-            ts.Expect(TokenType.CloseParen);
-            return new FunctionExpression(token.Contents, arguments, token);
-        }
-
         Syntax ParseFactor(TokenStream ts)
         {
-            if (ts.Match(TokenType.Identifier))
+            var token = ts.Read();
+            switch (token.Type)
             {
-                if (ts.Match(TokenType.OpenParen, 1))
-                {
-                    return ParseFunctionCall(ts);
-                }
-                else
-                {
-                    var token = ts.Read();
-                    return new IdentifierExpression(token.Contents, token);
-                }
-            }
-            if(ts.Match(TokenType.Field))
-            {
-                var token = ts.Read();
-                return new FieldExpression(token.Contents, token);
-            }
-            else if (ts.Match(TokenType.OpenParen))
-            {
-                ts.Read();
-                Syntax parenthesizedExpression = ParseExpression(ts);
-                ts.Expect(TokenType.CloseParen);
-                return parenthesizedExpression;
-            }
-            else if (ts.Match(TokenType.DecimalLiteral))
-            {
-                var token = ts.Read();
-                return new LiteralExpression(token.Contents, ScriptType.Number, token);
-            }
-            else if (ts.Match(TokenType.True) || ts.Match(TokenType.False))
-            {
-                var token = ts.Read();
-                return new LiteralExpression(token.Contents, ScriptType.Boolean, token);
-            }
-            else if (ts.Match(TokenType.StringLiteral))
-            {
-                var token = ts.Read();
-                return new LiteralExpression(token.Contents, ScriptType.String, token);
-            }
-            else if(ts.Match(TokenType.DateTimeLiteral))
-            {
-                var token = ts.Read();
-                return new LiteralExpression(token.Contents, ScriptType.DateTime, token);
-            }
-            else if (ts.Match(TokenType.Null))
-            {
-                var token = ts.Read();
-                return new LiteralExpression(token.Contents, ScriptType.Null, token);
-            }
-            else 
-            {
-                if (ts.Match(TokenType.Equal))
-                    throw new ScriptError(ts.Column, ts.Line, $"An assignment statement must be at the start of a line");
-                throw new ScriptError(ts.Column, ts.Line, $"Unexpected token {ts.Current().Contents}");
+                case TokenType.Identifier:
+                    ts.Expect(TokenType.OpenParen);
+                    List<Syntax> arguments = new List<Syntax>();
+                    while (!ts.Match(TokenType.CloseParen))
+                    {
+                        arguments.Add(ParseBinaryExpression(ts, 0));
+                        if (!ts.Match(TokenType.CloseParen))
+                            ts.Expect(TokenType.Comma);
+                    }
+                    ts.Expect(TokenType.CloseParen);
+                    return new FunctionExpression(token.Contents, arguments, token);
+                case TokenType.Field:
+                    return new FieldExpression(token.Contents, token);
+                case TokenType.OpenParen:
+                    Syntax parenthesizedExpression = ParseBinaryExpression(ts, 0);
+                    ts.Expect(TokenType.CloseParen);
+                    return parenthesizedExpression;
+                case TokenType.DecimalLiteral:
+                case TokenType.True:
+                case TokenType.False:
+                case TokenType.StringLiteral:
+                case TokenType.DateTimeLiteral:
+                case TokenType.Null:
+                    return new LiteralExpression(token.Contents, token);
+                default:
+                    throw new ScriptError(ts.Column, ts.Line, $"Unexpected token {ts.Current().Contents}");
             }
         }
     }

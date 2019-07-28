@@ -64,6 +64,7 @@ namespace CalculatedField
         }
         static void RunScript(string path)
         {
+            /*
             List<Field> fields = new List<Field>();
             var fx = new Field
             {
@@ -99,6 +100,7 @@ namespace CalculatedField
             //var compiled = engine.Compile(fx, fields);
             engine.Calculate(fields, dataList);
             Console.WriteLine(dataList[0][fy.FieldId]);
+            */
         }
     }
 }

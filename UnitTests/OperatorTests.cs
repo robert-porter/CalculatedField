@@ -14,16 +14,15 @@ namespace UnitTests
         [TestMethod]
         public void TestIntegerAddtion()
         {
-            var engine = new Engine();
             var value = engine.CalculateValue("2 + 2");
-            Assert.AreEqual(4m, value.Value);
+            Assert.AreEqual(4m, value);
         }
 
         [TestMethod]
         public void TestIntegerSubtraction()
         {
             var value = engine.CalculateValue("2 - 2");
-            Assert.AreEqual(0m, value.Value);
+            Assert.AreEqual(0m, value);
         }
 
         [TestMethod]
@@ -31,7 +30,7 @@ namespace UnitTests
         {
             var engine = new Engine();
             var value = engine.CalculateValue("2 * 2");
-            Assert.AreEqual(4m, value.Value);
+            Assert.AreEqual(4m, value);
         }
 
         [TestMethod]
@@ -39,7 +38,7 @@ namespace UnitTests
         {
             var engine = new Engine();
             var value = engine.CalculateValue("1 / 2");
-            Assert.AreEqual(0.5m, value.Value);
+            Assert.AreEqual(0.5m, value);
         }
 
         [TestMethod]
@@ -47,14 +46,14 @@ namespace UnitTests
         {
             var engine = new Engine();
             var value = engine.CalculateValue("2.0 + 2.0");
-            Assert.AreEqual(4m, value.Value);
+            Assert.AreEqual(4m, value);
         }
 
         [TestMethod]
         public void TestDecimalSubtraction()
         {
             var value = engine.CalculateValue("2.0 - 2.0");
-            Assert.AreEqual(0m, value.Value);
+            Assert.AreEqual(0m, value);
         }
 
         [TestMethod]
@@ -62,7 +61,7 @@ namespace UnitTests
         {
             var engine = new Engine();
             var value = engine.CalculateValue("2.0 * 2.0");
-            Assert.AreEqual(4m, value.Value);
+            Assert.AreEqual(4m, value);
         }
 
         [TestMethod]
@@ -70,80 +69,80 @@ namespace UnitTests
         {
             var engine = new Engine();
             var value = engine.CalculateValue("1.0 / 2.0");
-            Assert.AreEqual(0.5m, value.Value);
+            Assert.AreEqual(0.5m, value);
         }
       
         [TestMethod]
         public void TestStringAddition()
         {
             var value = engine.CalculateValue("\"ab\" + \"cd\"");
-            Assert.AreEqual("abcd", value.Value);
+            Assert.AreEqual("abcd", value);
 
             value = engine.CalculateValue("'ab' + 'cd'");
-            Assert.AreEqual("abcd", value.Value);       
+            Assert.AreEqual("abcd", value);       
         }
 
         [TestMethod]
         public void TestStringLess()
         {
             var value = engine.CalculateValue("\"ab\" < \"cd\"");
-            Assert.AreEqual(true, value.Value);
+            Assert.AreEqual(true, value);
 
             value = engine.CalculateValue("\"cd\" < \"ab\"");
-            Assert.AreEqual(false, value.Value);
+            Assert.AreEqual(false, value);
 
             value = engine.CalculateValue("\"ab\" < \"ab\"");
-            Assert.AreEqual(false, value.Value);
+            Assert.AreEqual(false, value);
         }
 
         [TestMethod]
         public void TestStringLessOrEqual()
         {
             var value = engine.CalculateValue("\"ab\" <= \"cd\"");
-            Assert.AreEqual(true, value.Value);
+            Assert.AreEqual(true, value);
 
             value = engine.CalculateValue("\"cd\" <= \"ab\"");
-            Assert.AreEqual(false, value.Value);
+            Assert.AreEqual(false, value);
 
             value = engine.CalculateValue("\"ab\" <= \"ab\"");
-            Assert.AreEqual(true, value.Value);
+            Assert.AreEqual(true, value);
         }
 
         [TestMethod]
         public void TestStringGreater()
         {
             var value = engine.CalculateValue("\"ab\" > \"cd\"");
-            Assert.AreEqual(false, value.Value);
+            Assert.AreEqual(false, value);
 
             value = engine.CalculateValue("\"ab\" > \"ab\"");
-            Assert.AreEqual(false, value.Value);
+            Assert.AreEqual(false, value);
         }
 
         [TestMethod]
         public void TestStringGreaterOrEqual()
         {
             var value = engine.CalculateValue("\"ab\" >= \"cd\"");
-            Assert.AreEqual(false, value.Value);
+            Assert.AreEqual(false, value);
         }
 
         [TestMethod]
         public void TestStringEqual()
         {
-            var value = engine.CalculateValue("\"ab\" == \"cd\"");
-            Assert.AreEqual(false, value.Value);
+            var value = engine.CalculateValue("\"ab\" = \"cd\"");
+            Assert.AreEqual(false, value);
 
-            value = engine.CalculateValue("\"ab\" == \"ab\"");
-            Assert.AreEqual(true, value.Value);
+            value = engine.CalculateValue("\"ab\" = \"ab\"");
+            Assert.AreEqual(true, value);
         }
 
         [TestMethod]
         public void TestStringNotEqual()
         {
             var value = engine.CalculateValue("\"ab\" <> \"ab\"");
-            Assert.AreEqual(false, value.Value);
+            Assert.AreEqual(false, value);
 
             value = engine.CalculateValue("\"ab\" <> \"cd\"");
-            Assert.AreEqual(true, value.Value);
+            Assert.AreEqual(true, value);
         }
 
         [TestMethod]
@@ -151,64 +150,119 @@ namespace UnitTests
         {
             var value = engine.CalculateValue("#1/1/2000# - #11/1/200#");
             var expected = DateTime.Parse("1/1/2000") - DateTime.Parse("11/1/200");            
-            Assert.AreEqual(expected, value.Value);
+            Assert.AreEqual(expected, value);
+        }
+
+        [TestMethod]
+        public void TestDateLess()
+        {
+            var value = engine.CalculateValue("#1/1/2000# < #11/1/200#");
+            var expected = DateTime.Parse("1/1/2000") < DateTime.Parse("11/1/200");
+            Assert.AreEqual(expected, value);
+
+            value = engine.CalculateValue("#11/1/200# < #1/1/2000#");
+            expected = DateTime.Parse("11/1/200") < DateTime.Parse("1/1/2000");
+            Assert.AreEqual(expected, value);
+        }
+
+        [TestMethod]
+        public void TestDateLessOrEqual()
+        {
+            var value = engine.CalculateValue("#1/1/2000# <= #11/1/200#");
+            var expected = DateTime.Parse("1/1/2000") <= DateTime.Parse("11/1/200");
+            Assert.AreEqual(expected, value);
+
+            value = engine.CalculateValue("#11/1/200# <= #1/1/2000#");
+            expected = DateTime.Parse("11/1/200") <= DateTime.Parse("1/1/2000");
+            Assert.AreEqual(expected, value);
+        }
+
+        [TestMethod]
+        public void TestDateGreater()
+        {
+            var value = engine.CalculateValue("#1/1/2000# > #11/1/200#");
+            var expected = DateTime.Parse("1/1/2000") > DateTime.Parse("11/1/200");
+            Assert.AreEqual(expected, value);
+
+            value = engine.CalculateValue("#11/1/200# > #1/1/2000#");
+            expected = DateTime.Parse("11/1/200") > DateTime.Parse("1/1/2000");
+            Assert.AreEqual(expected, value);
+        }
+
+        [TestMethod]
+        public void TestDateTimeSpanAddition()
+        {
+            var value = engine.CalculateValue("#1/1/200# + timeSpanFromDays(10)");
+            var expected =DateTime.Parse("1/1/200") + TimeSpan.FromDays(10);
+            Assert.AreEqual(expected, value);
+
+        }
+
+        [TestMethod]
+        public void TestTimeSpanAddition()
+        {
+            var value = engine.CalculateValue("timeSpanFromDays(10) + timeSpanFromDays(10)");
+            var expected = TimeSpan.FromDays(20);
+            Assert.AreEqual(expected, value);
+        }
+
+        [TestMethod]
+        public void TestTimeSpanLess()
+        {
+            var value = engine.CalculateValue("timeSpanFromDays(5) < timeSpanFromDays(10)");
+            Assert.AreEqual(true, value);
+
+            value = engine.CalculateValue("timeSpanFromDays(10) < timeSpanFromDays(5)");
+            Assert.AreEqual(false, value);
+
+            value = engine.CalculateValue("timeSpanFromDays(10) < timeSpanFromDays(10)");
+            Assert.AreEqual(false, value);
+        }
+
+        [TestMethod]
+        public void TestDateGreaterOrEqual()
+        {
+            var value = engine.CalculateValue("#1/1/2000# >= #11/1/200#");
+            var expected = DateTime.Parse("1/1/2000") >= DateTime.Parse("11/1/200");
+            Assert.AreEqual(expected, value);
+
+            value = engine.CalculateValue("#11/1/200# >= #1/1/2000#");
+            expected = DateTime.Parse("11/1/200") >= DateTime.Parse("1/1/2000");
+            Assert.AreEqual(expected, value);
         }
 
         [TestMethod]
         public void TestBoolOperators()
         {
-            var engine = new Engine();
-            var field = new Field();
-            field.Type = ScriptType.Boolean;
-            field.Script = "true and true";
-            var compiledScript = engine.Compile(field, new List<Field>());
-            var value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(true, value.Value);
+            var value = engine.CalculateValue("true and true");
+            Assert.AreEqual(true, value);
+           
+            value = engine.CalculateValue("true and false");
+            Assert.AreEqual(false, value);
+           
+            value = engine.CalculateValue("false and true");
+            Assert.AreEqual(false, value);
 
-            field.Script = "true and false";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(false, value.Value);
+            value = engine.CalculateValue("false and false");
+            Assert.AreEqual(false, value);
+           
+            value = engine.CalculateValue("true or true");
+            Assert.AreEqual(true, value);
+          
+            value = engine.CalculateValue("true or false");
+            Assert.AreEqual(true, value);
 
-            field.Script = "false and true";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(false, value.Value);
+            value = engine.CalculateValue("false or true");
+            Assert.AreEqual(true, value);
+           
+            value = engine.CalculateValue("false or false");
+            Assert.AreEqual(false, value);
+          
+            value = engine.CalculateValue("not false");
+            Assert.AreEqual(true, value);
 
-            field.Script = "false and false";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(false, value.Value);
-
-            field.Script = "true or true";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(true, value.Value);
-
-            field.Script = "true or false";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(true, value.Value);
-
-            field.Script = "false or true";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(true, value.Value);
-
-            field.Script = "false or false";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(false, value.Value);
-
-            field.Script = "not false";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(true, value.Value);
-
-            field.Script = "not true";
-            compiledScript = engine.Compile(field, new List<Field>());
-            value = engine.CalculateValue(compiledScript, new Dictionary<Guid, object>());
-            Assert.AreEqual(false, value.Value);
+            value = engine.CalculateValue("not true");
+            Assert.AreEqual(false, value);
 
         }
     }

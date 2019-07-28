@@ -37,13 +37,6 @@ namespace CalculatedField
             return Tokens[Index];
         }
 
-        public TokenType PeekType()
-        {
-            if (Index >= Tokens.Count)
-                throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, string.Format("Unexpected end of file"));
-            return Tokens[Index].Type;
-        }
-
         public Token Read()
         {
             if (Index >= Tokens.Count - 1)
@@ -80,10 +73,6 @@ namespace CalculatedField
                 var token = Tokens[Index];
                 Index++;
                 return token;
-            }
-            if(Tokens[Index].Type == TokenType.Equal)
-            {
-                throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, "An assignemnt statement must be on the left hand side of a line");
             }
             throw new ScriptError(Tokens[Index].Column, Tokens[Index].Line, $"Unexpected token {Tokens[Index].Contents}");
         }

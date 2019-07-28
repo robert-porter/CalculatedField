@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace CalculatedField
 {
 
     static class Runtime
     {
-        public static List<Function> Functions { get; private set; }
+        public static List<MethodInfo> Functions { get; private set; }
 
         static Runtime()
         {
-            Functions = new List<Function>();
+            Functions = new List<MethodInfo>();
             addAll(typeof(LibMath));
             addAll(typeof(LibString));
             addAll(typeof(LibDateTime));
@@ -23,7 +24,7 @@ namespace CalculatedField
                 var methodInfos = type.GetMethods();
                 foreach (var methodInfo in methodInfos)
                 {
-                    Functions.Add(new Function(methodInfo));
+                    Functions.Add(methodInfo);
                 }
             }
         }
@@ -176,46 +177,46 @@ namespace CalculatedField
 
     static class LibTimeSpan
     {
-        public static decimal? totalDays(TimeSpan? ts) => (decimal?)ts?.TotalDays;
-        public static decimal? totalHours(TimeSpan? ts) => (decimal)ts?.TotalHours;
-        public static decimal? totalMinutes(TimeSpan? ts) => (decimal?)ts?.TotalMinutes;
-        public static decimal? totalSeconds(TimeSpan? ts) => (decimal?)ts?.TotalSeconds;
+
         public static decimal? days(TimeSpan? ts) => (decimal)ts?.Days;
         public static decimal? hours(TimeSpan? ts) => (decimal)ts?.Hours;
         public static decimal? minutes(TimeSpan? ts) => (decimal)ts?.Minutes;
         public static decimal? seconds(TimeSpan? ts) => (decimal)ts?.Seconds;
+
+        public static decimal? totalDays(TimeSpan? ts) => (decimal?)ts?.TotalDays;
+        public static decimal? totalHours(TimeSpan? ts) => (decimal)ts?.TotalHours;
+        public static decimal? totalMinutes(TimeSpan? ts) => (decimal?)ts?.TotalMinutes;
+        public static decimal? totalSeconds(TimeSpan? ts) => (decimal?)ts?.TotalSeconds;
+
+        public static TimeSpan? timeSpanFromSeconds(decimal? seconds)
+        {
+            if (seconds == null) return null;
+            return TimeSpan.FromSeconds((double)seconds);
+        }
+
+        public static TimeSpan? timeSpanFromMinutes(decimal? minutes)
+        {
+            if (minutes == null) return null;
+            return TimeSpan.FromMinutes((double)minutes);
+        }
+
+        public static TimeSpan? timeSpanFromHours(decimal? hours)
+        {
+            if (hours == null) return null;
+            return TimeSpan.FromHours((double)hours);
+        }
+
+        public static TimeSpan? timeSpanFromDays(decimal? days)
+        {
+            if (days == null) return null;
+            return TimeSpan.FromDays((double)days);
+        }
+
     }
 
     static class LibDateTime
     {
 
-        public static DateTime Today => DateTime.Today;
-        public static DateTime Yesterday => DateTime.Today.AddDays(-1);
-        public static DateTime Tomorrow => DateTime.Today.AddDays(1);
-        public static DateTime StartOfWeek => DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
-        public static DateTime EndOfWeek => DateTime.Today.AddDays(6 - (int)DateTime.Today.DayOfWeek);
-        public static DateTime StartOfMonth => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        public static DateTime EndOfMonth => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(1).AddDays(-1);
-        public static DateTime StartOfYear => new DateTime(DateTime.Today.Year, 1, 1);
-        public static DateTime EndOfYear => new DateTime(DateTime.Today.Year, 12, 31);
-        public static DateTime StartOfQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1);
-        public static DateTime EndOfQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1).AddMonths(1).AddDays(-1);
-        public static DateTime StartOfLastWeek => DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek - 7);
-        public static DateTime EndOfLastWeek => DateTime.Today.AddDays((int)DateTime.Today.DayOfWeek - 1);
-        public static DateTime StartOfLastMonth => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-1);
-        public static DateTime EndOfLastMonth => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddDays(-1);
-        public static DateTime StartOfLastQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1).AddMonths(-3);
-        public static DateTime EndOfLastQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1).AddMonths(-2).AddDays(-1);
-        public static DateTime StartOfLastYear => new DateTime(DateTime.Today.Year - 1, 1, 1);
-        public static DateTime EndOfLastYear => new DateTime(DateTime.Today.Year - 1, 12, 31);
-        public static DateTime StartOfNextWeek => DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + 7);
-        public static DateTime EndOfNextWeek => DateTime.Today.AddDays((int)DateTime.Today.DayOfWeek + 6);
-        public static DateTime StartOfNextMonth => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(1);
-        public static DateTime EndOfNextMonth => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(2).AddDays(-1);
-        public static DateTime StartOfNextQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1).AddMonths(3);
-        public static DateTime EndOfNextQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1).AddMonths(5).AddDays(-1);
-        public static DateTime StartOfNextYear => new DateTime(DateTime.Today.Year + 1, 1, 1);
-        public static DateTime EndOfNextYear => new DateTime(DateTime.Today.Year + 1, 12, 31);
     }
 
     static class LibMath
@@ -415,3 +416,37 @@ namespace CalculatedField
     }
     
 }
+
+
+
+/*
+ * 
+ * 
+        public static DateTime Today => DateTime.Today;
+        public static DateTime Yesterday => DateTime.Today.AddDays(-1);
+        public static DateTime Tomorrow => DateTime.Today.AddDays(1);
+        public static DateTime StartOfWeek => DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
+        public static DateTime EndOfWeek => DateTime.Today.AddDays(6 - (int)DateTime.Today.DayOfWeek);
+        public static DateTime StartOfMonth => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        public static DateTime EndOfMonth => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(1).AddDays(-1);
+        public static DateTime StartOfYear => new DateTime(DateTime.Today.Year, 1, 1);
+        public static DateTime EndOfYear => new DateTime(DateTime.Today.Year, 12, 31);
+        public static DateTime StartOfQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1);
+        public static DateTime EndOfQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1).AddMonths(1).AddDays(-1);
+        public static DateTime StartOfLastWeek => DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek - 7);
+        public static DateTime EndOfLastWeek => DateTime.Today.AddDays((int)DateTime.Today.DayOfWeek - 1);
+        public static DateTime StartOfLastMonth => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-1);
+        public static DateTime EndOfLastMonth => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddDays(-1);
+        public static DateTime StartOfLastQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1).AddMonths(-3);
+        public static DateTime EndOfLastQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1).AddMonths(-2).AddDays(-1);
+        public static DateTime StartOfLastYear => new DateTime(DateTime.Today.Year - 1, 1, 1);
+        public static DateTime EndOfLastYear => new DateTime(DateTime.Today.Year - 1, 12, 31);
+        public static DateTime StartOfNextWeek => DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + 7);
+        public static DateTime EndOfNextWeek => DateTime.Today.AddDays((int)DateTime.Today.DayOfWeek + 6);
+        public static DateTime StartOfNextMonth => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(1);
+        public static DateTime EndOfNextMonth => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(2).AddDays(-1);
+        public static DateTime StartOfNextQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1).AddMonths(3);
+        public static DateTime EndOfNextQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1).AddMonths(5).AddDays(-1);
+        public static DateTime StartOfNextYear => new DateTime(DateTime.Today.Year + 1, 1, 1);
+        public static DateTime EndOfNextYear => new DateTime(DateTime.Today.Year + 1, 12, 31);
+*/

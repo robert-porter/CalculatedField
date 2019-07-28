@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq.Expressions;
+using System.Reflection;
 
 namespace CalculatedField
 {
@@ -6,6 +8,9 @@ namespace CalculatedField
     {
         static void Main(string[] args)
         {
+            DateTime dt;
+            TimeSpan ts;
+            var type = typeof(TimeSpan);
             Engine engine = new Engine();
             var script = "";
             while(true)
@@ -17,7 +22,7 @@ namespace CalculatedField
                     try
                     {
                         var value = engine.CalculateValue(script);
-                        Console.WriteLine(value.Value ?? "null");
+                        Console.WriteLine(value ?? "null");
                     }
                     catch(Exception e)
                     {

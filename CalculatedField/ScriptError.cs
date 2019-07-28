@@ -15,6 +15,6 @@ namespace CalculatedField
             Description = description;
         }
 
-        public override string Message => String.Format("({0}, {1}): {2}", Line, Column, Description);
+        public override string Message => String.Format("Line {0}, Column {1}: {2}", Line, Column, Description);
     }
 }

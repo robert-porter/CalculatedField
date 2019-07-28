@@ -12,7 +12,6 @@ namespace CalculatedField
         Star,
         Slash,
         Percent,
-        EqualEqual,
         LessGreater,
         Less,
         LessEqual,
@@ -68,13 +67,11 @@ namespace CalculatedField
             // order matters here.
             TokenDefinitions = new List<TokenDefinition>();
 
-            var ws = new TokenDefinition
+            TokenDefinitions.Add(new TokenDefinition
             {
                 Regex = new Regex("[\t ]"),
                 IsIgnored = true
-            };
-
-            TokenDefinitions.Add(ws);
+            });
             TokenDefinitions.Add(new TokenDefinition("\r?\n", TokenType.Newline));
             TokenDefinitions.Add(new TokenDefinition("{[\\w\\s]*}", TokenType.Field));
             TokenDefinitions.Add(new TokenDefinition("\\+", TokenType.Plus));
@@ -82,7 +79,6 @@ namespace CalculatedField
             TokenDefinitions.Add(new TokenDefinition("\\*", TokenType.Star));
             TokenDefinitions.Add(new TokenDefinition("/", TokenType.Slash));
             TokenDefinitions.Add(new TokenDefinition("\\%", TokenType.Percent));
-            TokenDefinitions.Add(new TokenDefinition("==", TokenType.EqualEqual));
             TokenDefinitions.Add(new TokenDefinition("<>", TokenType.LessGreater));
             TokenDefinitions.Add(new TokenDefinition("<=", TokenType.LessEqual));
             TokenDefinitions.Add(new TokenDefinition("<", TokenType.Less));
@@ -178,31 +174,6 @@ namespace CalculatedField
                 Line = currentLine,
                 Column = currentColumn
             };
-        }
-
-        public static List<Token> FixNewlines(List<Token> tokens)
-        {
-            var tokensOut = new List<Token>();
-            int i = 0;
-            while (tokens[i].Type == TokenType.Newline && i < tokens.Count)
-                i++;
-
-            while(i < tokens.Count)
-            {
-                if (tokens[i].Type == TokenType.Newline)
-                {
-                    tokensOut.Add(tokens[i]);
-                    while (tokens[i].Type == TokenType.Newline)
-                        i++;
-                }
-                else
-                {
-                    tokensOut.Add(tokens[i]);
-                    i++;
-                }
-            }
-
-            return tokensOut;
-        }
+        }        
     }
 }

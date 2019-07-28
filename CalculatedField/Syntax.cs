@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace CalculatedField
 {
@@ -30,43 +31,10 @@ namespace CalculatedField
     abstract class Syntax
     {
         public readonly Token Token;
+        public Type Type { get; set; }
         public Syntax(Token token)
         {
             Token = token;
-        }
-    }
-
-    class ScriptExpression : Syntax
-    {
-        public readonly List<Syntax> Expressions;
-
-        public ScriptExpression(List<Syntax> expressions, Token token) : base(token)
-        {
-            Expressions = expressions;
-        }
-    }
-
-    class AssignmentStatement : Syntax
-    {
-        public readonly string Name;
-        public readonly Syntax Right;
-        public int Location { get; set; }
-
-        public AssignmentStatement(string name, Syntax right, Token token) : base(token)
-        {
-            Name = name;
-            Right = right;
-        }
-    }
-
-    class IdentifierExpression : Syntax
-    {
-        public readonly string Name;
-        public int Location { get; set; }
-
-        public IdentifierExpression(string name, Token token) : base(token)
-        {
-            Name = name;
         }
     }
 
@@ -83,17 +51,57 @@ namespace CalculatedField
 
     class LiteralExpression : Syntax
     {
-        public readonly ScriptType Type;
-        public readonly string Value; 
+        public readonly string StringValue;
+        public readonly object Value;
+
+
         public int Location { get; set; }
 
-        public LiteralExpression(string value, ScriptType type, Token token) : base(token)
+        public LiteralExpression(string value, Token token) : base(token)
         {
-            Value = value;
-            Type = type;
+            StringValue = value;
+            switch (token.Type)
+            {
+                case TokenType.DecimalLiteral:
+                    Value  = decimal.Parse(StringValue);
+                    break;
+                case TokenType.True:
+                case TokenType.False:
+                    Value = bool.Parse(StringValue);
+                    break;
+                case TokenType.DateTimeLiteral:
+                   Value = DateTime.Parse(StringValue);
+                    break;
+                case TokenType.StringLiteral:
+                   Value = StringValue;
+                    break;
+                default:
+                   Value = null;
+                    break;
+            }
+            switch (Token.Type)
+            {
+                case TokenType.DecimalLiteral:
+                    Type = typeof(decimal?);
+                    break;
+                case TokenType.True:
+                case TokenType.False:
+                    Type = typeof(bool?);
+                    break;
+                case TokenType.DateTimeLiteral:
+                    Type = typeof(DateTime?);
+                    break;
+                case TokenType.StringLiteral:
+                    Type = typeof(string);
+                    break;
+                default:
+                    Type = null;
+                    break;
+
+            }
         }
 
-        public ScriptValue ScriptValue => ScriptValue.Parse(Value, Type); 
+
     }
 
     class BinaryExpression : Syntax
@@ -101,6 +109,7 @@ namespace CalculatedField
         public readonly BinaryOperator Operator;
         public readonly Syntax Left;
         public readonly Syntax Right;
+        public MethodInfo Method { get; set; }
 
         public BinaryExpression(BinaryOperator op, Syntax left, Syntax right, Token token) : base(token)
         {
@@ -126,7 +135,7 @@ namespace CalculatedField
     {
         public readonly string Name;
         public readonly List<Syntax> Arguments;
-        public int Location { get; set; }
+        public MethodInfo Method { get; set; }
 
         public FunctionExpression(string name, List<Syntax> arguments, Token token) : base(token)
         {
