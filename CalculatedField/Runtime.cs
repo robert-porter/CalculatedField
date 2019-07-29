@@ -21,14 +21,16 @@ namespace CalculatedField
             addAll(typeof(LibConversion));
             addAll(typeof(LibTimeSpan));
             addAll(typeof(LibStandard));
+
             void addAll(Type type)
             {
-                var methodInfos = type.GetMethods();
+                var methodInfos = type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly)
+                    .Where(methodInfo => !methodInfo.IsSpecialName);
                 foreach (var methodInfo in methodInfos)
                 {
                     Functions.Add(methodInfo);
                 }
-                var propertyInfos = type.GetProperties();
+                var propertyInfos = type.GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly);
                 foreach(var propertyInfo in propertyInfos)
                 {
                     Constants.Add(propertyInfo);
@@ -223,6 +225,27 @@ namespace CalculatedField
 
     static class LibDateTime
     {
+        public static decimal? second(DateTime? dt) => dt?.Second;
+        public static decimal? minute(DateTime? dt) => dt?.Minute;
+        public static decimal? hour(DateTime? dt) => dt?.Hour;
+
+        public static decimal? day(DateTime? dt) => dt?.Day;
+        public static decimal? month(DateTime? dt) => dt?.Month;
+        public static decimal? year(DateTime? dt) => dt?.Year;
+
+        public static DateTime? date(decimal? year, decimal? month, decimal? day)
+        {
+            if (year == null || month == null || day == null) return null;
+            return new DateTime((int) year, (int) month, (int) day);
+        }
+
+        public static DateTime? time(decimal? hour, decimal? minute, decimal? second)
+        {
+            if (hour == null || minute == null || second == null) return null;
+            return new DateTime(0, 0, 0, (int)hour, (int)minute, (int)second);
+        }
+
+
         public static DateTime? Today => DateTime.Today;
         public static DateTime? Yesterday => DateTime.Today.AddDays(-1);
         public static DateTime? Tomorrow => DateTime.Today.AddDays(1);
@@ -449,11 +472,3 @@ namespace CalculatedField
     }
     
 }
-
-
-
-/*
- * 
- * 
-
-*/

@@ -9,14 +9,14 @@ namespace CalculatedField
 {
     class CSharpCodeGenerator
     {
-        ParameterExpression Parameter;
+        ParameterExpression Record;
 
         public Func<Dictionary<Guid, object>, object> GenerateProgram(Syntax script, Symbols symbols)
         {
-            Parameter = Expression.Parameter(typeof(Dictionary<Guid, object>));
+            Record = Expression.Parameter(typeof(Dictionary<Guid, object>));
             var expression = Generate(script, symbols);
             expression = Expression.Convert(expression, typeof(object));
-            var parameters = new ParameterExpression[] { Parameter };
+            var parameters = new ParameterExpression[] { Record };
             return Expression.Lambda<Func<Dictionary<Guid, object>, object>>(expression, parameters).Compile();
         }
 
@@ -154,9 +154,14 @@ namespace CalculatedField
 
         public Expression GenerateFieldExpression(FieldExpression expression, Symbols symbols)
         {
+            // record.ContainsKey(id) ? record[id] : null
             var field = symbols.GetField(expression.Name);
-            var access = Expression.Property(Parameter, "Item", Expression.Constant(field.FieldId));
-            return Expression.Convert(access, field.Type);
+            var keyConstant = Expression.Constant(field.FieldId);
+            var access = Expression.Property(Record, "Item", keyConstant);
+            var containsKeyMethod = typeof(Dictionary<Guid, object>).GetMethod("ContainsKey");
+            var containsKey = Expression.Call(Record, containsKeyMethod, new Expression[] { keyConstant });
+            var condition = Expression.Condition(containsKey, access, Expression.Constant(null));
+            return Expression.Convert(condition, field.Type);
         }
 
         public Expression GenerateFunctionCallExpression(FunctionExpression call, Symbols symbols)

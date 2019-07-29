@@ -50,7 +50,6 @@
   <ItemGroup>
     <Compile Include="CSharpCodeGenerator.cs" />
     <Compile Include="Engine.cs" />
-    <Compile Include="CompiledScript.cs" />
     <Compile Include="Syntax.cs" />
     <Compile Include="Field.cs" />
     <Compile Include="Runtime.cs" />

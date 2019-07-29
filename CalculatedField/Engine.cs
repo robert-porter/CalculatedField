@@ -9,6 +9,9 @@ namespace CalculatedField
         public object CalculateValue(string script)
         {
             var fields = new List<Field>();
+            var record = new Dictionary<Guid, object>();
+
+            /*
             Field field = new Field
             {
                 Name = "a",
@@ -17,8 +20,7 @@ namespace CalculatedField
 
             };
             fields.Add(field);
-            var record = new Dictionary<Guid, object>();
-            record.Add(field.FieldId, 10m);
+            record.Add(field.FieldId, 10m); */
             var calculate = Compile(script, fields);
             if (calculate != null)
             {
