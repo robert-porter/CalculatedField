@@ -12,9 +12,9 @@ namespace UnitTests
 
 
         [TestMethod]
-        public void TestIntegerAddtion()
+        public void TestIntegerAddition()
         {
-            var value = engine.CalculateValue("2 + 2");
+            var value = engine.CalculateValue("{a} + 2");
             Assert.AreEqual(4m, value);
         }
 

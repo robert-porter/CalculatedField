@@ -6,50 +6,41 @@ namespace CalculatedField
 {
     public class Engine
     {
-        public object CalculateValue(CompiledScript compiledScript, Dictionary<Guid, object> record)
-        {
-            if (compiledScript != null)
-            {
-                List<object> fieldValues = compiledScript.FieldsUsed.Select(field => record[field.FieldId]).ToList();
-                var value = compiledScript.Calculate();
-                return value;
-            }
-            return null;
-        }
-
         public object CalculateValue(string script)
         {
             var fields = new List<Field>();
-            var record = new Dictionary<Guid, object>();
-            var compiledScript = Compile(script, fields);
-            if (compiledScript != null)
+            Field field = new Field
             {
-                var value = compiledScript.Calculate();
+                Name = "a",
+                Type = typeof(decimal?),
+                FieldId = Guid.NewGuid(),
+
+            };
+            fields.Add(field);
+            var record = new Dictionary<Guid, object>();
+            record.Add(field.FieldId, 10m);
+            var calculate = Compile(script, fields);
+            if (calculate != null)
+            {
+                var value = calculate(record);
                 return value;
             }
             return null;
         }
 
-        public CompiledScript Compile(string script, List<Field> fields)
+        public Func<Dictionary<Guid, object>, object> Compile(string script, List<Field> fields)
         {
             var tokenizer = new Tokenizer();
             tokenizer.CreateTokenDefinitions();
-            var tokens = tokenizer.Tokenize(script).ToList();
+            var (tokens, tokenizerErrors) = tokenizer.Tokenize(script);
             var tokenStream = new TokenStream(tokens);
             Parser parser = new Parser();
-            var expression = parser.Parse(tokenStream);
+            var (expression, parserErrors) = parser.Parse(tokenStream);
             var symbols = new Symbols(fields);
             var resolver = new Resolver();
             resolver.Resolve(expression, symbols);
             var codeGenerator = new CSharpCodeGenerator();
-            var function = codeGenerator.GenerateProgram(expression, symbols);
-
-            var compiledScript = new CompiledScript
-            {
-                Calculate = function, 
-            };
-
-            return compiledScript;
+            return codeGenerator.GenerateProgram(expression, symbols);
         }
     }
 }

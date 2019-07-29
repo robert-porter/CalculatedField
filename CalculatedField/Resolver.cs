@@ -1,106 +1,126 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace CalculatedField
 {
     class Resolver 
     {   
-        public Type Resolve(Syntax expression, Symbols symbols)
+        public void Resolve(Syntax expression, Symbols symbols)
         {
             switch (expression)
             {
-                case LiteralExpression e:
-                    return ResolveLiteralExpression(e, symbols);
                 case BinaryExpression e:
-                    return ResolveBinaryExpression(e, symbols);
+                    ResolveBinaryExpression(e, symbols);
+                    break;
                 case UnaryExpression e:
-                    return ResolveUnaryExpression(e, symbols);
+                    ResolveUnaryExpression(e, symbols);
+                    break;
                 case FunctionExpression e:
-                    return ResolveFunctionCallExpression(e, symbols);
+                    ResolveFunctionCallExpression(e, symbols);
+                    break;
                 case FieldExpression e:
-                    return ResolveFieldExpression(e, symbols);
-                default:
-                    return null;
+                    ResolveFieldExpression(e, symbols);
+                    break;
+                case IdentifierExpression e:
+                    ResolveIdentifierExpression(e, symbols);
+                    break;
             }
         }
 
-        Type ResolveLiteralExpression(LiteralExpression  e, Symbols symbols)
+        void ResolveIdentifierExpression(IdentifierExpression e, Symbols symbols)
         {
-            return e.Type;
+            var constant = GetConstant(e.Name);
+            if(constant != null)
+            {
+                e.Type = constant.PropertyType;
+                e.Property = constant;
+            }
+            else
+            {
+                throw new ScriptError(e.Token.Index, $"Could not find constant {e.Name}");
+            }
         }
 
         Type ResolveBinaryExpression(BinaryExpression e, Symbols symbols)
         {
-            var left = Resolve(e.Left, symbols);
-            var right = Resolve(e.Right, symbols);
+            Resolve(e.Left, symbols);
+            Resolve(e.Right, symbols);
             Type type = null;
-            switch (e.Operator)
+            switch (e.Token.Type)
             {
-                case BinaryOperator.Add:
-                    type = ResolveAdd(e, left, right);
+                case TokenType.Plus:
+                    type = ResolveAdd(e, e.Left.Type, e.Right.Type);
                     break;
-                case BinaryOperator.Subtract:
-                    type = CheckSubtract(left, right);
+                case TokenType.Minus:
+                    type = CheckSubtract(e.Left.Type, e.Right.Type);
                     break;
-                case BinaryOperator.Multiply:
-                    type = CheckMultiply(left, right);
+                case TokenType.Multiply:
+                    type = CheckMultiply(e.Left.Type, e.Right.Type);
                     break;
-                case BinaryOperator.Divide:
-                    type = CheckDivide(left, right);
+                case TokenType.Divide:
+                    type = CheckDivide(e.Left.Type, e.Right.Type);
                     break;
-                case BinaryOperator.DivideAndTruncate:
-                    type = CheckDivideThenTruncate(left, right);
+                case TokenType.Equal:
+                case TokenType.NotEqual:
+                    type = CheckCompareEqual(e.Left.Type, e.Right.Type);
                     break;
-                case BinaryOperator.CompareNotEqual:
-                case BinaryOperator.CompareEqual:
-                    type = CheckCompareEqual(left, right);
+                case TokenType.GreaterThan:
+                case TokenType.GreaterThenOrEqual:
+                case TokenType.LessThen:
+                case TokenType.LessThanOrEqual:
+                    type = CheckCompareOrder(e.Left.Type, e.Right.Type);
                     break;
-                case BinaryOperator.Greater:
-                case BinaryOperator.GreaterOrEqual:
-                case BinaryOperator.Less:
-                case BinaryOperator.LessOrEqual:
-                    type = CheckCompareOrder(left, right);
+                case TokenType.And:
+                    type = CheckAndOr(e.Left.Type, e.Right.Type);
                     break;
-                case BinaryOperator.And:
-                    type = CheckAndOr(left, right);
-                    break;
-                case BinaryOperator.Or:
-                    type = CheckAndOr(left, right);
+                case TokenType.Or:
+                    type = CheckAndOr(e.Left.Type, e.Right.Type);
                     break;
             }
             e.Type = type;
             if (type == null)
-                throw new ScriptError(e.Token.Column, e.Token.Line, $"Operator {e.Token.Contents} is not defined on {left} and {right}");
+            {
+                var leftName = GetFiendlyTypeName(e.Left.Type);
+                var rightName = GetFiendlyTypeName(e.Right.Type);
+                throw new ScriptError(e.Token.Index, $"Operator {e.Token.Contents} is not defined on {leftName} and {rightName}");
+            }
             else return type;
         }
 
         Type ResolveUnaryExpression(UnaryExpression e, Symbols symbols)
         {
-            var right = Resolve(e.Right, symbols);
+            Resolve(e.Right, symbols);
             Type type = null;
-            switch (e.Operator)
+            switch (e.Token.Type)
             {
-                case UnaryOperator.Not:
-                    type = CheckNot(right);
+                case TokenType.Not:
+                    type = CheckNot(e.Right.Type);
                     break;
-                case UnaryOperator.Plus:
-                    type = CheckUnaryPlus(right);
+                case TokenType.Plus:
+                    type = CheckUnaryPlus(e.Right.Type);
                     break;
-                case UnaryOperator.Minus:
-                    type = CheckUnaryMinus(right);
+                case TokenType.Minus:
+                    type = CheckUnaryMinus(e.Right.Type);
                     break;
             }
             e.Type = type;
             if (type == null)
-                throw new ScriptError(e.Token.Column, e.Token.Line, $"Operator {e.Token.Contents} is not defined on {right}");
+            {
+                var typeName = GetFiendlyTypeName(e.Right.Type);
+                throw new ScriptError(e.Token.Index, $"Operator {e.Token.Contents} is not defined on {typeName}");
+            }
             return type;
         }
 
         Type ResolveFieldExpression(FieldExpression e, Symbols symbols)
         {
             Field field = symbols.GetField(e.Name);
-            symbols.AddScriptField(field);
+            if(field == null)
+            {
+                throw new ScriptError(e.Token.Index, $"The field {e.Name} does not exist on the entity");
+            }
             e.Type = field.Type;
             return field.Type;
         }
@@ -110,13 +130,13 @@ namespace CalculatedField
             var arguments = new List<Type>();
             foreach(var argument in e.Arguments)
             {
-                var type = Resolve(argument, symbols);
-                arguments.Add(type);
+                Resolve(argument, symbols);
+                arguments.Add(argument.Type);
             }
-            var function = symbols.GetFunction(e.Name, arguments);
+            var function = GetFunction(e.Name, arguments);
             if (function == null)
             {
-                throw new ScriptError(e.Token.Column, e.Token.Line, $"Function not found {e.Name}({string.Join(", ", arguments)})");
+                throw new ScriptError(e.Token.Index, $"Function not found {e.Name}({string.Join(", ", arguments)})");
             }
             else
             {
@@ -145,67 +165,32 @@ namespace CalculatedField
         public static Type ResolveAdd(BinaryExpression e, Type left, Type right)
         {
             Type type = null;
-            if (left == typeof(decimal?) || left == typeof(decimal) &&
-                right == typeof(decimal?) || right == typeof(decimal))
+            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
+                (right == typeof(decimal?) || right == typeof(decimal)))
                 return typeof(decimal?);
-            if (left == typeof(DateTime?) || left == typeof(DateTime) &&
-                right == typeof(TimeSpan?) || right == typeof(TimeSpan))
+            if ((left == typeof(DateTime?) || left == typeof(DateTime)) &&
+                (right == typeof(TimeSpan?) || right == typeof(TimeSpan)))
                 return typeof(DateTime?);
-            if (left == typeof(TimeSpan?) || left == typeof(TimeSpan) &&
-                right == typeof(TimeSpan?) || right == typeof(TimeSpan))
+            if ((left == typeof(TimeSpan?) || left == typeof(TimeSpan)) &&
+                (right == typeof(TimeSpan?) || right == typeof(TimeSpan)))
                 return typeof(TimeSpan?);
-            if (left == typeof(string) && right == typeof(string))
-            {
-                var method = typeof(LibString).GetMethod("concat");
-                e.Method = method;
+            if ((left == typeof(string) && right == typeof(string)))
                 return typeof(string);
-            }
-            else
-            {
-                /*
-                var methods = left.GetMethods();
-                var addition = Array.Find(methods, method =>
-                {
-                    var parameters = method.GetParameters();
-                    if (method.Name == "op_Addition" && parameters.Length == 2 &&
-                        parameters[0].ParameterType == left && parameters[1].ParameterType == right)
-                        return true;
-                    return false;
-                });
-                if (addition != null)
-                {
-                    //e.Method = addition;
-                    return addition.ReturnType;
-                }
-                methods = right.GetMethods();
-                addition = Array.Find(methods, method =>
-                {
-                    var parameters = method.GetParameters();
-                    if (method.Name == "op_Addition" && parameters.Length == 2 &&
-                        parameters[0].ParameterType == left && parameters[1].ParameterType == right)
-                        return true;
-                    return false;
-                });
-                if (addition != null)
-                {
-                    //e.Method = addition;
-                    return addition.ReturnType;
-                } */
-            }
+            
             return type;
         }
 
         public static Type CheckSubtract(Type left, Type right)
         {
 
-            if (left == typeof(decimal?) || left == typeof(decimal) &&
-                right == typeof(decimal?) || right == typeof(decimal))
+            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
+                (right == typeof(decimal?) || right == typeof(decimal)))
                 return typeof(decimal?);
-            if (left == typeof(TimeSpan?) || left == typeof(TimeSpan) &&
-                right == typeof(TimeSpan?) || right == typeof(TimeSpan))
+            if ((left == typeof(TimeSpan?) || left == typeof(TimeSpan)) &&
+                (right == typeof(TimeSpan?) || right == typeof(TimeSpan)))
                 return typeof(TimeSpan?);
-            if (left == typeof(DateTime?) || left == typeof(DateTime) &&
-                right == typeof(DateTime?) || right == typeof(DateTime))
+            if ((left == typeof(DateTime?) || left == typeof(DateTime)) &&
+                (right == typeof(DateTime?) || right == typeof(DateTime)))
                 return typeof(TimeSpan?);
             return null;
         }
@@ -213,8 +198,8 @@ namespace CalculatedField
         public static Type CheckMultiply(Type left, Type right)
         {
 
-            if (left == typeof(decimal?) || left == typeof(decimal) &&
-                right == typeof(decimal?) || right == typeof(decimal))
+            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
+                (right == typeof(decimal?) || right == typeof(decimal)))
                 return typeof(decimal?);
             return null;
         }
@@ -222,8 +207,8 @@ namespace CalculatedField
         public static Type CheckDivide(Type left, Type right)
         {
 
-            if (left == typeof(decimal?) || left == typeof(decimal) &&
-                right == typeof(decimal?) || right == typeof(decimal))
+            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
+                (right == typeof(decimal?) || right == typeof(decimal)))
                 return typeof(decimal?);
 
             return null;
@@ -232,8 +217,8 @@ namespace CalculatedField
         public static Type CheckDivideThenTruncate(Type left, Type right)
         {
 
-            if (left == typeof(decimal?) || left == typeof(decimal) &&
-                right == typeof(decimal?) || right == typeof(decimal))
+            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
+                (right == typeof(decimal?) || right == typeof(decimal)))
                 return typeof(decimal?);
             return null;
         }
@@ -247,65 +232,93 @@ namespace CalculatedField
 
         public static Type CheckAndOr(Type left, Type right)
         {
-            if (left == typeof(bool?) || left == typeof(bool) && right == typeof(bool?) || right == typeof(bool))
+            if ((left == typeof(bool?) || left == typeof(bool)) && 
+                (right == typeof(bool?) || right == typeof(bool)))
                 return typeof(bool?);
             return null;
         }
 
         public static Type CheckCompareOrder(Type left, Type right)
         {
-            if (left == typeof(decimal?) || left == typeof(decimal) &&
-                right == typeof(decimal?) || right == typeof(decimal))
+            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
+                (right == typeof(decimal?) || right == typeof(decimal)))
                 return typeof(bool?);
             if (left == typeof(string) && right == typeof(string))
                 return typeof(bool?);
-            if (left == typeof(TimeSpan?) || left == typeof(TimeSpan) &&
-                right == typeof(TimeSpan?) || right == typeof(TimeSpan))
+            if ((left == typeof(TimeSpan?) || left == typeof(TimeSpan)) &&
+                (right == typeof(TimeSpan?) || right == typeof(TimeSpan)))
                 return typeof(bool?);
-            if (left == typeof(DateTime?) || left == typeof(DateTime) &&
-                right == typeof(DateTime?) || right == typeof(DateTime))
+            if ((left == typeof(DateTime?) || left == typeof(DateTime)) &&
+                (right == typeof(DateTime?) || right == typeof(DateTime)))
                 return typeof(bool?);
             return null;
         }
 
         public static Type CheckCompareEqual(Type left, Type right)
         {
-            if (left == typeof(bool?) && right == typeof(bool?))
+            if ((left == typeof(bool?) || left == typeof(bool)) && 
+                (right == typeof(bool?) || right == typeof(bool)))
                 return typeof(bool?);
-            if (left == typeof(decimal?) || left == typeof(decimal) &&
-                right == typeof(decimal?) || right == typeof(decimal))
+            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
+                (right == typeof(decimal?) || right == typeof(decimal)))
                 return typeof(bool?);
             if (left == typeof(string) && right == typeof(string))
                 return typeof(bool?);
-            if (left == typeof(TimeSpan?) || left == typeof(TimeSpan) &&
-                right == typeof(TimeSpan?) || right == typeof(TimeSpan))
+            if ((left == typeof(TimeSpan?) || left == typeof(TimeSpan)) &&
+                (right == typeof(TimeSpan?) || right == typeof(TimeSpan)))
                 return typeof(bool?);
-            if (left == typeof(DateTime?) || left == typeof(DateTime) &&
-                right == typeof(DateTime?) || right == typeof(DateTime))
+            if ((left == typeof(DateTime?) || left == typeof(DateTime)) &&
+                (right == typeof(DateTime?) || right == typeof(DateTime)))
                 return typeof(bool?);
             return null;
         }
 
-        public MethodInfo GetBinaryOperatorMethod(Type left, Type right)
+        string GetFiendlyTypeName(Type type)
         {
-            return null;
-            /*
-== op_Equality
-!= op_Inequality
->  op_GreaterThan
-<  op_LessThan
->= op_GreaterThanOrEqual
-<= op_LessThanOrEqual
-+  op_Addition
--  op_Subtraction
-/  op_Division
-%  op_Modulus
-*  op_Multiply
--  op_UnaryNegation
-+  op_UnaryPlus
-!  op_LogicalNot
+            if (type == typeof(bool?) || type == typeof(bool))
+                return "Boolean";
+            if (type == typeof(decimal?) || type == typeof(decimal))
+                return "Number";
+            if (type == typeof(string))
+                return "String";
+            if (type == typeof(TimeSpan?) || type == typeof(TimeSpan)) 
+                return "TimeSpan";
+            if (type == typeof(DateTime?) || type == typeof(DateTime))
+                return "DateTime";
+            return "null";
 
-            */
+        }
+
+        public PropertyInfo GetConstant(string name)
+        {
+            return Runtime.Constants.Find(constant => constant.Name == name);
+        }
+
+        public MethodInfo GetFunction(string searchName, List<Type> searchArguments)
+        {
+            for (var f = 0; f < Runtime.Functions.Count; f++)
+            {
+                var function = Runtime.Functions[f];
+                var arguments = Runtime.Functions[f].GetParameters();
+                if (function.Name == searchName && arguments.Count() == searchArguments.Count)
+                {
+                    bool argumentsMatch = true;
+                    for (int a = 0; a < searchArguments.Count; a++)
+                    {
+                        if (searchArguments[a] != arguments[a].ParameterType)
+                        {
+                            argumentsMatch = false;
+                            break;
+                        }
+                    }
+                    if (argumentsMatch)
+                    {
+                        return function;
+                    }
+                }
+            }
+            return null;
+
         }
 
     }

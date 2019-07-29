@@ -4,29 +4,6 @@ using System.Reflection;
 
 namespace CalculatedField
 {
-    public enum UnaryOperator
-    {
-        Plus,
-        Minus,
-        Not
-    }
-
-    public enum BinaryOperator
-    {
-        Add,
-        Subtract,
-        Multiply,
-        Divide,
-        DivideAndTruncate,
-        CompareEqual,
-        CompareNotEqual,
-        Greater,
-        GreaterOrEqual,
-        Less,
-        LessOrEqual,
-        And,
-        Or
-    }
 
     abstract class Syntax
     {
@@ -65,8 +42,7 @@ namespace CalculatedField
                 case TokenType.DecimalLiteral:
                     Value  = decimal.Parse(StringValue);
                     break;
-                case TokenType.True:
-                case TokenType.False:
+                case TokenType.BooleanLiteral:
                     Value = bool.Parse(StringValue);
                     break;
                 case TokenType.DateTimeLiteral:
@@ -84,8 +60,7 @@ namespace CalculatedField
                 case TokenType.DecimalLiteral:
                     Type = typeof(decimal?);
                     break;
-                case TokenType.True:
-                case TokenType.False:
+                case TokenType.BooleanLiteral:
                     Type = typeof(bool?);
                     break;
                 case TokenType.DateTimeLiteral:
@@ -100,20 +75,26 @@ namespace CalculatedField
 
             }
         }
+    }
 
-
+    class IdentifierExpression : Syntax
+    {
+        public readonly string Name;
+        public PropertyInfo Property { get; set; }
+        public IdentifierExpression(string name, Token token) : base(token)
+        {
+            Name = name;
+        }
     }
 
     class BinaryExpression : Syntax
     {
-        public readonly BinaryOperator Operator;
         public readonly Syntax Left;
         public readonly Syntax Right;
         public MethodInfo Method { get; set; }
 
-        public BinaryExpression(BinaryOperator op, Syntax left, Syntax right, Token token) : base(token)
+        public BinaryExpression( Syntax left, Syntax right, Token token) : base(token)
         {
-            Operator = op;
             Left = left;
             Right = right;
         }
@@ -122,11 +103,8 @@ namespace CalculatedField
     class UnaryExpression : Syntax
     {
         public readonly Syntax Right;
-        public readonly UnaryOperator Operator;
-
-        public UnaryExpression(UnaryOperator op, Syntax argument, Token token) : base(token)
+        public UnaryExpression(Syntax argument, Token token) : base(token)
         {
-            Operator = op;
             Right = argument;
         }
     }

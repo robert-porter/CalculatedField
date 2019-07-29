@@ -8,38 +8,23 @@ namespace CalculatedField
     {
         static void Main(string[] args)
         {
-            DateTime dt;
-            TimeSpan ts;
             var type = typeof(TimeSpan);
             Engine engine = new Engine();
-            var script = "";
-            while(true)
+            while (true)
             {
-                var line = Console.ReadLine();
-                if(line.EndsWith(";"))
+                try
                 {
-                    script = script + line.TrimEnd(';');
-                    try
-                    {
-                        var value = engine.CalculateValue(script);
-                        Console.WriteLine(value ?? "null");
-                    }
-                    catch(Exception e)
-                    {
-                        Console.WriteLine(e.Message);
-                    }
-                    script = "";
+                    var line = Console.ReadLine();
+                    var value = engine.CalculateValue(line);
+                    Console.WriteLine(value ?? "null");
                 }
-                else
+                catch (Exception e)
                 {
-                    script = script + line + "\r\n";
+                    Console.WriteLine(e.Message);
                 }
+
             }
         }
 
-        public static string func(int x, string y)
-        {
-            return x.ToString() + y;
-        }
     }
 }

@@ -1,8 +1,5 @@
 ﻿using CalculatedField;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-
 
 namespace UnitTests
 {
@@ -10,7 +7,6 @@ namespace UnitTests
     public class ParserTests
     {
         Engine engine = new Engine();
-
 
         [TestMethod]
         public void TestOrderOfOperations()

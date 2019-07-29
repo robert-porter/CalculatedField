@@ -9,16 +9,15 @@ namespace CalculatedField
 {
     class CSharpCodeGenerator
     {
+        ParameterExpression Parameter;
 
-        public CSharpCodeGenerator()
+        public Func<Dictionary<Guid, object>, object> GenerateProgram(Syntax script, Symbols symbols)
         {
-        }
-
-        public Func<object> GenerateProgram(Syntax script, Symbols symbols)
-        {
+            Parameter = Expression.Parameter(typeof(Dictionary<Guid, object>));
             var expression = Generate(script, symbols);
             expression = Expression.Convert(expression, typeof(object));
-            return Expression.Lambda<Func<object>>(expression).Compile();
+            var parameters = new ParameterExpression[] { Parameter };
+            return Expression.Lambda<Func<Dictionary<Guid, object>, object>>(expression, parameters).Compile();
         }
 
         Expression Generate(Syntax expression, Symbols symbols)
@@ -35,8 +34,10 @@ namespace CalculatedField
                     return GenerateFunctionCallExpression(e, symbols);
                 case FieldExpression e:
                     return GenerateFieldExpression(e, symbols);
+                case IdentifierExpression e:
+                    return GenerateConstantExpression(e, symbols);
                 default:
-                    throw new ScriptError(0, 0, "Internal compiler error");
+                    return null;
             }
         }
 
@@ -44,16 +45,16 @@ namespace CalculatedField
         {
             var right = Generate(expression.Right, symbols);
 
-            switch (expression.Operator)
+            switch (expression.Token.Type)
             {
-                case UnaryOperator.Plus: // do nothing
+                case TokenType.Plus: // do nothing
                     return right; //return Expression.UnaryPlus(right);
-                case UnaryOperator.Minus:
+                case TokenType.Minus:
                     return Expression.Negate(right);
-                case UnaryOperator.Not:
+                case TokenType.Not:
                     return Expression.Not(right);
                 default:
-                    throw new ScriptError(0, 0, "Internal compiler error");
+                    return null;
             }
         }
 
@@ -62,53 +63,49 @@ namespace CalculatedField
             var left = Generate(expression.Left, symbols);
             var right = Generate(expression.Right, symbols);
 
-            switch (expression.Operator)
+            switch (expression.Token.Type)
             {
-                case BinaryOperator.Add:
-                    if (expression.Method != null)
-                    {
-                        return Expression.Call(null, expression.Method, new Expression[] { left, right });
-                    }
+                case TokenType.Plus:
+                    if (expression.Left.Type == typeof(string) && expression.Right.Type == typeof(string))
+                        return GenerateStringAddExpression(left, right);
                     else
-                    {
                         return Expression.Add(left, right);
-                    }
-                case BinaryOperator.Subtract:
+                case TokenType.Minus:
                     return Expression.Subtract(left, right);
-                case BinaryOperator.Multiply:
+                case TokenType.Multiply:
                     return Expression.Multiply(left, right);
-                case BinaryOperator.Divide:
+                case TokenType.Divide:
                     return Expression.Divide(left, right);
-                case BinaryOperator.Less:
+                case TokenType.LessThen:
                     if(expression.Left.Type == typeof(string) && expression.Right.Type == typeof(string))
                         return GenerateStringLessExpression(left, right);
                     else
                         return Expression.LessThan(left, right);
-                case BinaryOperator.LessOrEqual:
+                case TokenType.LessThanOrEqual:
                     if (expression.Left.Type == typeof(string) && expression.Right.Type == typeof(string))
                         return GenerateStringLessOrEqualExpression(left, right);
                         else
                         return Expression.LessThanOrEqual(left, right);                   
-                case BinaryOperator.Greater:
+                case TokenType.GreaterThan:
                     if (expression.Left.Type == typeof(string) && expression.Right.Type == typeof(string))
                         return GenerateStringGreaterExpression(left, right);
                     else
                         return Expression.GreaterThan(left, right);
-                case BinaryOperator.GreaterOrEqual:
+                case TokenType.GreaterThenOrEqual:
                     if (expression.Left.Type == typeof(string) && expression.Right.Type == typeof(string))
                         return GenerateStringGreaterOrEqualExpression(left, right);
                     else
                         return Expression.GreaterThanOrEqual(left, right);
-                case BinaryOperator.CompareEqual:
+                case TokenType.Equal:
                     return Expression.Equal(left, right);
-                case BinaryOperator.CompareNotEqual:
+                case TokenType.NotEqual:
                     return Expression.NotEqual(left, right);
-                case BinaryOperator.And:
+                case TokenType.And:
                     return Expression.And(left, right);
-                case BinaryOperator.Or:
+                case TokenType.Or:
                     return Expression.Or(left, right);
                 default:
-                    throw new ScriptError(0, 0, "Internal compiler error");
+                    return null;
             }
         }
 
@@ -137,16 +134,29 @@ namespace CalculatedField
             return Expression.GreaterThanOrEqual(Expression.Call(null, methodInfo, new Expression[] { left, right }), Expression.Constant(0));
         }
 
+        Expression GenerateStringAddExpression(Expression left, Expression right)
+        {
+            var methodInfo = typeof(LibString).GetMethod("concat");
+            return Expression.Call(null, methodInfo, new Expression[] { left, right });
+        }
+
         public Expression GenerateLiteralExpression(LiteralExpression expression, Symbols symbols)
         {
             var constant = Expression.Constant(expression.Value);
             return Expression.Convert(constant, expression.Type);
         }
 
+        public Expression GenerateConstantExpression(IdentifierExpression expression, Symbols symbols)
+        {
+            var property = Expression.Property(null, expression.Property);
+            return Expression.Convert(property, expression.Type);
+        }
+
         public Expression GenerateFieldExpression(FieldExpression expression, Symbols symbols)
         {
             var field = symbols.GetField(expression.Name);
-            return Expression.Variable(field.Type, field.Name);
+            var access = Expression.Property(Parameter, "Item", Expression.Constant(field.FieldId));
+            return Expression.Convert(access, field.Type);
         }
 
         public Expression GenerateFunctionCallExpression(FunctionExpression call, Symbols symbols)

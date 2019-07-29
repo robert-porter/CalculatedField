@@ -4,17 +4,15 @@ namespace CalculatedField
 {
     class ScriptError : Exception
     {
-        public readonly int Column;
-        public readonly int Line;
+        public readonly int Index;
         public readonly string Description;
 
-        public ScriptError(int column, int line, string description) 
+        public ScriptError(int index, string description) 
         {
-            Column = column;
-            Line = line;
+            Index = index;
             Description = description;
         }
 
-        public override string Message => String.Format("Line {0}, Column {1}: {2}", Line, Column, Description);
+        public override string Message => $"{Index}: {Description}";
     }
 }
