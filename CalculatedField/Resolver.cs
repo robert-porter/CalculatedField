@@ -5,31 +5,46 @@ using System.Reflection;
 
 namespace CalculatedField
 {
-    class Resolver 
-    {   
-        public void Resolve(Syntax expression, Symbols symbols)
+    class Resolver
+    {
+        public List<Field> EntityFields;
+        List<ScriptError> Errors;
+
+        public Resolver(List<Field> entityFields)
+        {
+            EntityFields = entityFields;
+        }
+
+        public List<ScriptError> ResolveScript(Syntax syntax)
+        {
+            Errors = new List<ScriptError>();
+            Resolve(syntax);
+            return Errors;
+        }
+
+        public void Resolve(Syntax expression)
         {
             switch (expression)
             {
                 case BinaryExpression e:
-                    ResolveBinaryExpression(e, symbols);
+                    ResolveBinaryExpression(e);
                     break;
                 case UnaryExpression e:
-                    ResolveUnaryExpression(e, symbols);
+                    ResolveUnaryExpression(e);
                     break;
                 case FunctionExpression e:
-                    ResolveFunctionCallExpression(e, symbols);
+                    ResolveFunctionCallExpression(e);
                     break;
                 case FieldExpression e:
-                    ResolveFieldExpression(e, symbols);
+                    ResolveFieldExpression(e);
                     break;
                 case IdentifierExpression e:
-                    ResolveIdentifierExpression(e, symbols);
+                    ResolveIdentifierExpression(e);
                     break;
             }
         }
 
-        void ResolveIdentifierExpression(IdentifierExpression e, Symbols symbols)
+        void ResolveIdentifierExpression(IdentifierExpression e)
         {
             var constant = GetConstant(e.Name);
             if(constant != null)
@@ -39,14 +54,14 @@ namespace CalculatedField
             }
             else
             {
-                throw new ScriptError(e.Token.Index, $"Could not find constant {e.Name}");
+                Errors.Add(new ScriptError(e.Token.Index, $"Constant {e.Name} is not defined"));
             }
         }
 
-        Type ResolveBinaryExpression(BinaryExpression e, Symbols symbols)
+        void ResolveBinaryExpression(BinaryExpression e)
         {
-            Resolve(e.Left, symbols);
-            Resolve(e.Right, symbols);
+            Resolve(e.Left);
+            Resolve(e.Right);
             Type type = null;
             switch (e.Token.Type)
             {
@@ -84,14 +99,13 @@ namespace CalculatedField
             {
                 var leftName = GetFiendlyTypeName(e.Left.Type);
                 var rightName = GetFiendlyTypeName(e.Right.Type);
-                throw new ScriptError(e.Token.Index, $"Operator {e.Token.Contents} is not defined on {leftName} and {rightName}");
+                Errors.Add(new ScriptError(e.Token.Index, $"Operator {e.Token.Contents} is not defined on {leftName} and {rightName}"));
             }
-            else return type;
         }
 
-        Type ResolveUnaryExpression(UnaryExpression e, Symbols symbols)
+        void ResolveUnaryExpression(UnaryExpression e)
         {
-            Resolve(e.Right, symbols);
+            Resolve(e.Right);
             Type type = null;
             switch (e.Token.Type)
             {
@@ -109,41 +123,42 @@ namespace CalculatedField
             if (type == null)
             {
                 var typeName = GetFiendlyTypeName(e.Right.Type);
-                throw new ScriptError(e.Token.Index, $"Operator {e.Token.Contents} is not defined on {typeName}");
+                Errors.Add(new ScriptError(e.Token.Index, $"Operator {e.Token.Contents} is not defined on {typeName}"));
             }
-            return type;
         }
 
-        Type ResolveFieldExpression(FieldExpression e, Symbols symbols)
+        void ResolveFieldExpression(FieldExpression e)
         {
-            Field field = symbols.GetField(e.Name);
-            if(field == null)
+            Field field = EntityFields.Find(f => f.Name == e.Name);
+            if (field == null)
             {
-                throw new ScriptError(e.Token.Index, $"The field {e.Name} does not exist on the entity");
+                Errors.Add(new ScriptError(e.Token.Index, $"Field {e.Name} is not defined"));
             }
-            e.Type = field.Type;
-            return field.Type;
+            else
+            {
+                e.Type = field.Type;
+            }
         }
 
-        Type ResolveFunctionCallExpression(FunctionExpression e, Symbols symbols)
+        void ResolveFunctionCallExpression(FunctionExpression e)
         {
-            var arguments = new List<Type>();
+            var argumentTypes = new List<Type>();
             foreach(var argument in e.Arguments)
             {
-                Resolve(argument, symbols);
-                arguments.Add(argument.Type);
+                Resolve(argument);
+                argumentTypes.Add(argument.Type);
             }
-            var function = GetFunction(e.Name, arguments);
+            var function = GetFunction(e.Name, argumentTypes);
             if (function == null)
             {
-                throw new ScriptError(e.Token.Index, $"Function not found {e.Name}({string.Join(", ", arguments)})");
+                var fiendlyTypes = argumentTypes.Select(type => GetFiendlyTypeName(type));
+                Errors.Add(new ScriptError(e.Token.Index, $"Function {e.Name}({string.Join(", ", fiendlyTypes)}) is not defined"));
             }
             else
             {
                 e.Method = function;
+                e.Type = function.ReturnType;
             }
-            e.Type = function.ReturnType;
-            return function.ReturnType;
         }
 
         public static Type CheckUnaryPlus(Type right)
@@ -285,7 +300,7 @@ namespace CalculatedField
                 return "TimeSpan";
             if (type == typeof(DateTime?) || type == typeof(DateTime))
                 return "DateTime";
-            return "null";
+            return "Undefined";
 
         }
 
@@ -296,30 +311,10 @@ namespace CalculatedField
 
         public MethodInfo GetFunction(string searchName, List<Type> searchArguments)
         {
-            for (var f = 0; f < Runtime.Functions.Count; f++)
-            {
-                var function = Runtime.Functions[f];
-                var arguments = Runtime.Functions[f].GetParameters();
-                if (function.Name == searchName && arguments.Count() == searchArguments.Count)
-                {
-                    bool argumentsMatch = true;
-                    for (int a = 0; a < searchArguments.Count; a++)
-                    {
-                        if (searchArguments[a] != arguments[a].ParameterType)
-                        {
-                            argumentsMatch = false;
-                            break;
-                        }
-                    }
-                    if (argumentsMatch)
-                    {
-                        return function;
-                    }
-                }
-            }
-            return null;
-
+            return Runtime.Functions.FirstOrDefault(function =>
+                function.Name == searchName &&
+                searchArguments.SequenceEqual(function.GetParameters().Select(param => param.ParameterType))
+            );
         }
-
     }
 }

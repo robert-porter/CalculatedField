@@ -1,49 +1,48 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CalculatedField
 {
-    class CSharpCodeGenerator
+    class LambdaGenerator
     {
         ParameterExpression Record;
+        List<Field> EntityFields;
 
-        public Func<Dictionary<Guid, object>, object> GenerateProgram(Syntax script, Symbols symbols)
+        public Func<Dictionary<Guid, object>, object> GenerateProgram(Syntax script, List<Field> entityFields)
         {
+            EntityFields = entityFields;
             Record = Expression.Parameter(typeof(Dictionary<Guid, object>));
-            var expression = Generate(script, symbols);
+            var expression = Generate(script);
             expression = Expression.Convert(expression, typeof(object));
             var parameters = new ParameterExpression[] { Record };
             return Expression.Lambda<Func<Dictionary<Guid, object>, object>>(expression, parameters).Compile();
         }
 
-        Expression Generate(Syntax expression, Symbols symbols)
+        Expression Generate(Syntax expression)
         {
             switch (expression)
             {
                 case LiteralExpression e:
-                    return GenerateLiteralExpression(e, symbols);
+                    return GenerateLiteralExpression(e);
                 case BinaryExpression e:
-                    return GenerateBinaryExpression(e, symbols);
+                    return GenerateBinaryExpression(e);
                 case UnaryExpression e:
-                    return GenerateUnaryExpression(e, symbols);
+                    return GenerateUnaryExpression(e);
                 case FunctionExpression e:
-                    return GenerateFunctionCallExpression(e, symbols);
+                    return GenerateFunctionCallExpression(e);
                 case FieldExpression e:
-                    return GenerateFieldExpression(e, symbols);
+                    return GenerateFieldExpression(e);
                 case IdentifierExpression e:
-                    return GenerateConstantExpression(e, symbols);
+                    return GenerateConstantExpression(e);
                 default:
                     return null;
             }
         }
 
-        public Expression GenerateUnaryExpression(UnaryExpression expression, Symbols symbols)
+        public Expression GenerateUnaryExpression(UnaryExpression expression)
         {
-            var right = Generate(expression.Right, symbols);
+            var right = Generate(expression.Right);
 
             switch (expression.Token.Type)
             {
@@ -58,10 +57,10 @@ namespace CalculatedField
             }
         }
 
-        public Expression GenerateBinaryExpression(BinaryExpression expression, Symbols symbols)
+        public Expression GenerateBinaryExpression(BinaryExpression expression)
         {
-            var left = Generate(expression.Left, symbols);
-            var right = Generate(expression.Right, symbols);
+            var left = Generate(expression.Left);
+            var right = Generate(expression.Right);
 
             switch (expression.Token.Type)
             {
@@ -140,22 +139,22 @@ namespace CalculatedField
             return Expression.Call(null, methodInfo, new Expression[] { left, right });
         }
 
-        public Expression GenerateLiteralExpression(LiteralExpression expression, Symbols symbols)
+        public Expression GenerateLiteralExpression(LiteralExpression expression)
         {
             var constant = Expression.Constant(expression.Value);
             return Expression.Convert(constant, expression.Type);
         }
 
-        public Expression GenerateConstantExpression(IdentifierExpression expression, Symbols symbols)
+        public Expression GenerateConstantExpression(IdentifierExpression expression)
         {
             var property = Expression.Property(null, expression.Property);
             return Expression.Convert(property, expression.Type);
         }
 
-        public Expression GenerateFieldExpression(FieldExpression expression, Symbols symbols)
+        public Expression GenerateFieldExpression(FieldExpression expression)
         {
             // record.ContainsKey(id) ? record[id] : null
-            var field = symbols.GetField(expression.Name);
+            var field = EntityFields.Find(f => f.Name == expression.Name);
             var keyConstant = Expression.Constant(field.FieldId);
             var access = Expression.Property(Record, "Item", keyConstant);
             var containsKeyMethod = typeof(Dictionary<Guid, object>).GetMethod("ContainsKey");
@@ -164,12 +163,12 @@ namespace CalculatedField
             return Expression.Convert(condition, field.Type);
         }
 
-        public Expression GenerateFunctionCallExpression(FunctionExpression call, Symbols symbols)
+        public Expression GenerateFunctionCallExpression(FunctionExpression call)
         {
             var arguments = new List<Expression>();
             foreach (Syntax argument in call.Arguments)
             {
-                arguments.Add(Generate(argument, symbols));
+                arguments.Add(Generate(argument));
             }
             return Expression.Call(null, call.Method, arguments);
         }

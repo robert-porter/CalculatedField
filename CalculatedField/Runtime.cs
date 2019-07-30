@@ -144,7 +144,8 @@ namespace CalculatedField
 
         public static bool contains(string a, string b)
         {
-            if (a == null || b == null) return false;
+            if (string.IsNullOrEmpty(b)) return true;
+            if (a == null) return false;
             return a.Contains(b);
         }
 
@@ -157,31 +158,11 @@ namespace CalculatedField
             return s.Substring((int)startIndex, (int)length);
         }
 
-        public static string trim(string s)
-        {
-            return s?.Trim();
-        }
-
-        public static string trimStart(string s)
-        {
-            return s?.TrimStart();
-        }
-
-        public static string trimEnd(string s)
-        {
-            return s?.TrimEnd();
-        }
-
-        public static string toUpper(string s)
-        {
-            return s?.ToUpper();
-        }
-
-        public static string toLower(string s)
-        {
-            return s?.ToLower();
-        }
-
+        public static string trim(string s) => s?.Trim();
+        public static string trimStart(string s) => s?.TrimStart();
+        public static string trimEnd(string s) => s?.TrimEnd();
+        public static string toUpper(string s) => s?.ToUpper();   
+        public static string toLower(string s) => s?.ToLower();
     }
 
     static class LibTimeSpan

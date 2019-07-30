@@ -13,6 +13,6 @@ namespace CalculatedField
             Description = description;
         }
 
-        public override string Message => $"{Index}: {Description}";
+        public override string Message => $"{Index + 1}: {Description}";
     }
 }

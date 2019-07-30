@@ -8,7 +8,6 @@ namespace CalculatedField
     {
         static void Main(string[] args)
         {
-            var type = typeof(TimeSpan);
             Engine engine = new Engine();
             while (true)
             {

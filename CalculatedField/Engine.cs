@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace CalculatedField
 {
@@ -10,17 +9,6 @@ namespace CalculatedField
         {
             var fields = new List<Field>();
             var record = new Dictionary<Guid, object>();
-
-            /*
-            Field field = new Field
-            {
-                Name = "a",
-                Type = typeof(decimal?),
-                FieldId = Guid.NewGuid(),
-
-            };
-            fields.Add(field);
-            record.Add(field.FieldId, 10m); */
             var calculate = Compile(script, fields);
             if (calculate != null)
             {
@@ -32,17 +20,30 @@ namespace CalculatedField
 
         public Func<Dictionary<Guid, object>, object> Compile(string script, List<Field> fields)
         {
+            List<ScriptError> errors = new List<ScriptError>();
             var tokenizer = new Tokenizer();
             tokenizer.CreateTokenDefinitions();
             var (tokens, tokenizerErrors) = tokenizer.Tokenize(script);
-            var tokenStream = new TokenStream(tokens);
-            Parser parser = new Parser();
-            var (expression, parserErrors) = parser.Parse(tokenStream);
-            var symbols = new Symbols(fields);
-            var resolver = new Resolver();
-            resolver.Resolve(expression, symbols);
-            var codeGenerator = new CSharpCodeGenerator();
-            return codeGenerator.GenerateProgram(expression, symbols);
+            errors.AddRange(tokenizerErrors);
+            Parser parser = new Parser(tokens);
+            var (expression, parserErrors) = parser.Parse();
+            errors.AddRange(parserErrors);
+            if(expression != null)
+            {
+                var resolver = new Resolver(fields);
+                var resolverErrors = resolver.ResolveScript(expression);
+                errors.AddRange(resolverErrors);
+                if(errors.Count == 0)
+                {
+                    var codeGenerator = new LambdaGenerator();
+                    return codeGenerator.GenerateProgram(expression, fields);
+                }
+            }
+            foreach (var error in errors)
+            {
+                Console.WriteLine(error.Message);
+            }
+            return null;
         }
     }
 }

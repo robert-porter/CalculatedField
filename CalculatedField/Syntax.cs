@@ -18,8 +18,6 @@ namespace CalculatedField
     class FieldExpression : Syntax
     {
         public readonly string Name;
-        public int Location { get; set; }
-
         public FieldExpression(string name, Token token) : base(token)
         {
             Name = name;
@@ -30,10 +28,6 @@ namespace CalculatedField
     {
         public readonly string StringValue;
         public readonly object Value;
-
-
-        public int Location { get; set; }
-
         public LiteralExpression(string value, Token token) : base(token)
         {
             StringValue = value;
@@ -91,8 +85,6 @@ namespace CalculatedField
     {
         public readonly Syntax Left;
         public readonly Syntax Right;
-        public MethodInfo Method { get; set; }
-
         public BinaryExpression( Syntax left, Syntax right, Token token) : base(token)
         {
             Left = left;
@@ -114,7 +106,6 @@ namespace CalculatedField
         public readonly string Name;
         public readonly List<Syntax> Arguments;
         public MethodInfo Method { get; set; }
-
         public FunctionExpression(string name, List<Syntax> arguments, Token token) : base(token)
         {
             Name = name;

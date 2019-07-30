@@ -48,18 +48,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CSharpCodeGenerator.cs" />
+    <Compile Include="LambdaGenerator.cs" />
     <Compile Include="Engine.cs" />
     <Compile Include="Syntax.cs" />
     <Compile Include="Field.cs" />
     <Compile Include="Runtime.cs" />
     <Compile Include="ScriptError.cs" />
-    <Compile Include="Symbols.cs" />
     <Compile Include="Tokenizer.cs" />
     <Compile Include="Parser.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resolver.cs" />
-    <Compile Include="TokenStream.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

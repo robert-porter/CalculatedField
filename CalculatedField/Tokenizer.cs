@@ -17,8 +17,8 @@ namespace CalculatedField
         GreaterThan,
         GreaterThenOrEqual,
         Equal,
-        OpenParen,
-        CloseParen,
+        OpenParenthese,
+        CloseParenthese,
         Comma,
         StringLiteral,
         DecimalLiteral,
@@ -72,8 +72,8 @@ namespace CalculatedField
             TokenDefinitions.Add(new TokenDefinition(">=", TokenType.GreaterThenOrEqual));
             TokenDefinitions.Add(new TokenDefinition(">", TokenType.GreaterThan));
             TokenDefinitions.Add(new TokenDefinition("=", TokenType.Equal));
-            TokenDefinitions.Add(new TokenDefinition("\\(", TokenType.OpenParen));
-            TokenDefinitions.Add(new TokenDefinition("\\)", TokenType.CloseParen));
+            TokenDefinitions.Add(new TokenDefinition("\\(", TokenType.OpenParenthese));
+            TokenDefinitions.Add(new TokenDefinition("\\)", TokenType.CloseParenthese));
             TokenDefinitions.Add(new TokenDefinition(",", TokenType.Comma));
             TokenDefinitions.Add(new TokenDefinition("\"([^\"\\\\]|\\\\.)*\"", TokenType.StringLiteral));
             TokenDefinitions.Add(new TokenDefinition("'([^'\\\\]|\\\\.)*'", TokenType.StringLiteral));

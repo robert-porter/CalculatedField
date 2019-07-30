@@ -7,9 +7,14 @@ namespace CalculatedField
         List<TokenType[]> BinaryOperators;
         TokenType[] UnaryOperators;
         List<ScriptError> Errors;
+        List<Token> Tokens;
+        int Index;
 
-        public Parser() 
+        public Parser(List<Token> tokens) 
         {
+            Tokens = tokens;
+            Index = 0;
+
             BinaryOperators = new List<TokenType[]>();
             BinaryOperators.Add(new TokenType[] { TokenType.Or });
             BinaryOperators.Add(new TokenType[] { TokenType.And });
@@ -45,24 +50,34 @@ namespace CalculatedField
             };
         }
 
-        public (Syntax, List<ScriptError>) Parse(TokenStream ts)
+        public (Syntax, List<ScriptError>) Parse()
         {
             Errors = new List<ScriptError>();
-            var syntax = ParseBinaryExpression(ts, 0);
-            return (syntax, Errors);
+            try
+            {
+                var syntax = ParseBinaryExpression(0);
+                Expect(TokenType.EOF);
+                return (syntax, Errors);
+            }
+            catch (ScriptError error)
+            {
+                Errors.Add(error);
+            }
+
+            return (null, Errors);
         }
 
-        Syntax ParseBinaryExpression(TokenStream ts, int precedence)
+        Syntax ParseBinaryExpression(int precedence)
         {
             if (precedence >= BinaryOperators.Count)
-                return ParseUnaryExpression(ts);
+                return ParseUnaryExpression();
 
-            Syntax left = ParseBinaryExpression(ts, precedence + 1);
-            while (ts.Match(BinaryOperators[precedence]))
+            Syntax left = ParseBinaryExpression(precedence + 1);
+            while (Match(BinaryOperators[precedence]))
             {
-                var token = ts.Read();
-                var right = ParseBinaryExpression(ts, precedence + 1);
-                if (ts.Match(BinaryOperators[precedence]))
+                var token = Read();
+                var right = ParseBinaryExpression(precedence + 1);
+                if (Match(BinaryOperators[precedence]))
                 {
                     left = new BinaryExpression(left, right, token);
                 }
@@ -74,37 +89,38 @@ namespace CalculatedField
             return left;
         }
 
-        Syntax ParseUnaryExpression(TokenStream ts)
+        Syntax ParseUnaryExpression()
         {
-            if (ts.Match(UnaryOperators))
+            if (Match(UnaryOperators))
             {
-                var token = ts.Read();
-                var right = ParseUnaryExpression(ts);
+                var token = Read();
+                var right = ParseUnaryExpression();
                 return new UnaryExpression(right, token);
             }
             else 
             {
-                return ParseFactor(ts);
+                return ParseFactor();
             }
         }
 
-        Syntax ParseFactor(TokenStream ts)
+        Syntax ParseFactor()
         {
-            var token = ts.Read();
+            var token = Read();
             switch (token.Type)
             {
                 case TokenType.Identifier:
-                    if (ts.Match(TokenType.OpenParen))
+                    if (Match(TokenType.OpenParenthese))
                     {
-                        ts.Expect(TokenType.OpenParen);
+                        Read();
                         List<Syntax> arguments = new List<Syntax>();
-                        while (!ts.Match(TokenType.CloseParen))
+                        while (!Match(TokenType.CloseParenthese))
                         {
-                            arguments.Add(ParseBinaryExpression(ts, 0));
-                            if (!ts.Match(TokenType.CloseParen))
-                                ts.Expect(TokenType.Comma, TokenType.CloseParen);
+                            var argument = ParseBinaryExpression(0);
+                            arguments.Add(argument);
+                            if (!Match(TokenType.CloseParenthese))
+                                Expect(TokenType.Comma, TokenType.CloseParenthese);
                         }
-                        ts.Expect(TokenType.CloseParen);
+                        Expect(TokenType.CloseParenthese);
                         return new FunctionExpression(token.Contents, arguments, token);
                     }
                     else
@@ -113,9 +129,9 @@ namespace CalculatedField
                     }
                 case TokenType.Field:
                     return new FieldExpression(token.Contents, token);
-                case TokenType.OpenParen:
-                    Syntax parenthesizedExpression = ParseBinaryExpression(ts, 0);
-                    ts.Expect(TokenType.CloseParen);
+                case TokenType.OpenParenthese:
+                    Syntax parenthesizedExpression = ParseBinaryExpression(0);
+                    Expect(TokenType.CloseParenthese);
                     return parenthesizedExpression;
                 case TokenType.DecimalLiteral:
                 case TokenType.BooleanLiteral:
@@ -124,9 +140,44 @@ namespace CalculatedField
                 case TokenType.Null:
                     return new LiteralExpression(token.Contents, token);
                 default:
-                    Errors.Add(new ScriptError(ts.Index, $"Unexpected token {token.Contents}"));
-                    return null;
+                    throw new ScriptError(Index, $"Unexpected token {token.Contents}");
             }
+        }
+
+        public Token Read()
+        {
+            if (Index >= Tokens.Count - 1)
+                throw new ScriptError(Index, "Unexpected end of script");
+            return Tokens[Index++];
+        }
+
+        public bool Match(params TokenType[] types)
+        {
+            if (Index >= Tokens.Count)
+                throw new ScriptError(Index, "Unexpected end of script");
+            foreach (var type in types)
+                if (Tokens[Index].Type == type)
+                    return true;
+            return false;
+        }
+
+
+        public Token Expect(params TokenType[] types)
+        {
+            if (Index >= Tokens.Count)
+                throw new ScriptError(Index, "Unexpected end of script");
+
+            foreach (var type in types)
+            {
+                if (Tokens[Index].Type == type)
+                {
+                    var token = Tokens[Index];
+                    Index++;
+                    return token;
+                }
+            }
+            var typesString = string.Join(", ", types);
+            throw new ScriptError(Index, $"Unexpected token {Tokens[Index].Contents}. ");
         }
     }
 }
