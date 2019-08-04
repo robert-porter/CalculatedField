@@ -13,8 +13,8 @@ namespace CalculatedField
         Divide,
         NotEqual,
         LessThen,
-        LessThanOrEqual,
-        GreaterThan,
+        LessThenOrEqual,
+        GreaterThen,
         GreaterThenOrEqual,
         Equal,
         OpenParenthese,
@@ -60,32 +60,34 @@ namespace CalculatedField
         public void CreateTokenDefinitions()
         {
             // order matters here.
-            TokenDefinitions = new List<TokenDefinition>();
-            TokenDefinitions.Add(new TokenDefinition("{[\\w\\s]*}", TokenType.Field));
-            TokenDefinitions.Add(new TokenDefinition("\\+", TokenType.Plus));
-            TokenDefinitions.Add(new TokenDefinition("\\-", TokenType.Minus));
-            TokenDefinitions.Add(new TokenDefinition("\\*", TokenType.Multiply));
-            TokenDefinitions.Add(new TokenDefinition("/", TokenType.Divide));
-            TokenDefinitions.Add(new TokenDefinition("<>", TokenType.NotEqual));
-            TokenDefinitions.Add(new TokenDefinition("<=", TokenType.LessThanOrEqual));
-            TokenDefinitions.Add(new TokenDefinition("<", TokenType.LessThen));
-            TokenDefinitions.Add(new TokenDefinition(">=", TokenType.GreaterThenOrEqual));
-            TokenDefinitions.Add(new TokenDefinition(">", TokenType.GreaterThan));
-            TokenDefinitions.Add(new TokenDefinition("=", TokenType.Equal));
-            TokenDefinitions.Add(new TokenDefinition("\\(", TokenType.OpenParenthese));
-            TokenDefinitions.Add(new TokenDefinition("\\)", TokenType.CloseParenthese));
-            TokenDefinitions.Add(new TokenDefinition(",", TokenType.Comma));
-            TokenDefinitions.Add(new TokenDefinition("\"([^\"\\\\]|\\\\.)*\"", TokenType.StringLiteral));
-            TokenDefinitions.Add(new TokenDefinition("'([^'\\\\]|\\\\.)*'", TokenType.StringLiteral));
-            TokenDefinitions.Add(new TokenDefinition("#(.*?)#", TokenType.DateTimeLiteral));
-            TokenDefinitions.Add(new TokenDefinition("[0-9]+(\\.[0-9]+)?", TokenType.DecimalLiteral));
-            TokenDefinitions.Add(new TokenDefinition("[0-9]+", TokenType.IntegerLiteral));
-            TokenDefinitions.Add(new TokenDefinition("true|false", TokenType.BooleanLiteral));
-            TokenDefinitions.Add(new TokenDefinition("not", TokenType.Not));
-            TokenDefinitions.Add(new TokenDefinition("and", TokenType.And));
-            TokenDefinitions.Add(new TokenDefinition("or", TokenType.Or));
-            TokenDefinitions.Add(new TokenDefinition("null", TokenType.Null));
-            TokenDefinitions.Add(new TokenDefinition("[a-zA-Z_]+[a-zA-Z_0-9]*", TokenType.Identifier));
+            TokenDefinitions = new List<TokenDefinition>
+            {
+                new TokenDefinition("{[\\w\\s]*}", TokenType.Field),
+                new TokenDefinition("\\+", TokenType.Plus),
+                new TokenDefinition("\\-", TokenType.Minus),
+                new TokenDefinition("\\*", TokenType.Multiply),
+                new TokenDefinition("/", TokenType.Divide),
+                new TokenDefinition("<>", TokenType.NotEqual),
+                new TokenDefinition("<=", TokenType.LessThenOrEqual),
+                new TokenDefinition("<", TokenType.LessThen),
+                new TokenDefinition(">=", TokenType.GreaterThenOrEqual),
+                new TokenDefinition(">", TokenType.GreaterThen),
+                new TokenDefinition("=", TokenType.Equal),
+                new TokenDefinition("\\(", TokenType.OpenParenthese),
+                new TokenDefinition("\\)", TokenType.CloseParenthese),
+                new TokenDefinition(",", TokenType.Comma),
+                new TokenDefinition("\"([^\"\\\\]|\\\\.)*\"", TokenType.StringLiteral),
+                new TokenDefinition("'([^'\\\\]|\\\\.)*'", TokenType.StringLiteral),
+                new TokenDefinition("#(.*?)#", TokenType.DateTimeLiteral),
+                new TokenDefinition("[0-9]+(\\.[0-9]+)?", TokenType.DecimalLiteral),
+                new TokenDefinition("[0-9]+", TokenType.IntegerLiteral),
+                new TokenDefinition("true|false", TokenType.BooleanLiteral),
+                new TokenDefinition("not", TokenType.Not),
+                new TokenDefinition("and", TokenType.And),
+                new TokenDefinition("or", TokenType.Or),
+                new TokenDefinition("null", TokenType.Null),
+                new TokenDefinition("[a-zA-Z_]+[a-zA-Z_0-9]*", TokenType.Identifier)
+            };
         }
 
         public (List<Token>, List<ScriptError>) Tokenize(string source)
@@ -129,7 +131,7 @@ namespace CalculatedField
                 }
                 if (token == null)
                 {
-                    errors.Add(new ScriptError(index, $"Unrecognized symbol {source[index]}"));
+                    errors.Add(ScriptError.UnrecognizedSymbol(index, source[index].ToString()));
                     index++;
                 }
                 else

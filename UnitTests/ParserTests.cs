@@ -6,7 +6,7 @@ namespace UnitTests
     [TestClass]
     public class ParserTests
     {
-        Engine engine = new Engine();
+        readonly Engine engine = new Engine();
 
         [TestMethod]
         public void TestOrderOfOperations()
@@ -29,5 +29,7 @@ namespace UnitTests
             var value = engine.CalculateValue(@"1 + if(true or false,1, 2.0)");
             Assert.AreEqual(2m, value);
         }
+
+
     }
 }

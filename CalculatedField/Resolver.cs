@@ -5,14 +5,168 @@ using System.Reflection;
 
 namespace CalculatedField
 {
+   
     class Resolver
     {
         public List<Field> EntityFields;
         List<ScriptError> Errors;
+        readonly Dictionary<(TokenType, ScriptType, ScriptType), ScriptType> BinaryOperators;
+        readonly Dictionary<(TokenType, ScriptType), ScriptType> UnaryOperators;
 
         public Resolver(List<Field> entityFields)
         {
             EntityFields = entityFields;
+
+            BinaryOperators = new Dictionary<(TokenType, ScriptType, ScriptType), ScriptType>()
+            {
+                [(TokenType.Plus, ScriptType.Null, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.Plus, ScriptType.Number, ScriptType.Number)] = ScriptType.Number,
+                [(TokenType.Plus, ScriptType.Null, ScriptType.Number)] = ScriptType.Number,
+                [(TokenType.Plus, ScriptType.Number, ScriptType.Null)] = ScriptType.Number,
+                [(TokenType.Plus, ScriptType.String, ScriptType.String)] = ScriptType.String,
+                [(TokenType.Plus, ScriptType.Null, ScriptType.String)] = ScriptType.String,
+                [(TokenType.Plus, ScriptType.String, ScriptType.Null)] = ScriptType.String,
+                [(TokenType.Plus, ScriptType.TimeSpan, ScriptType.TimeSpan)] = ScriptType.TimeSpan,
+                [(TokenType.Plus, ScriptType.Null, ScriptType.TimeSpan)] = ScriptType.TimeSpan,
+                [(TokenType.Plus, ScriptType.TimeSpan, ScriptType.Null)] = ScriptType.TimeSpan,
+                [(TokenType.Plus, ScriptType.DateTime, ScriptType.TimeSpan)] = ScriptType.DateTime,
+                [(TokenType.Plus, ScriptType.DateTime, ScriptType.Null)] = ScriptType.DateTime,
+
+                [(TokenType.Minus, ScriptType.Null, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.Minus, ScriptType.Number, ScriptType.Number)] = ScriptType.Number,
+                [(TokenType.Minus, ScriptType.Null, ScriptType.Number)] = ScriptType.Number,
+                [(TokenType.Minus, ScriptType.Number, ScriptType.Null)] = ScriptType.Number,
+                [(TokenType.Minus, ScriptType.TimeSpan, ScriptType.TimeSpan)] = ScriptType.TimeSpan,
+                [(TokenType.Minus, ScriptType.Null, ScriptType.TimeSpan)] = ScriptType.TimeSpan,
+                [(TokenType.Minus, ScriptType.TimeSpan, ScriptType.Null)] = ScriptType.TimeSpan,
+                [(TokenType.Minus, ScriptType.DateTime, ScriptType.DateTime)] = ScriptType.TimeSpan,
+                [(TokenType.Minus, ScriptType.Null, ScriptType.DateTime)] = ScriptType.TimeSpan,
+                [(TokenType.Minus, ScriptType.DateTime, ScriptType.Null)] = ScriptType.TimeSpan,
+
+                [(TokenType.Multiply, ScriptType.Null, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.Multiply, ScriptType.Number, ScriptType.Number)] = ScriptType.Number,
+                [(TokenType.Multiply, ScriptType.Null, ScriptType.Number)] = ScriptType.Number,
+                [(TokenType.Multiply, ScriptType.Number, ScriptType.Null)] = ScriptType.Number,
+
+                [(TokenType.Divide, ScriptType.Null, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.Divide, ScriptType.Number, ScriptType.Number)] = ScriptType.Number,
+                [(TokenType.Divide, ScriptType.Null, ScriptType.Number)] = ScriptType.Number,
+                [(TokenType.Divide, ScriptType.Number, ScriptType.Null)] = ScriptType.Number,
+
+                [(TokenType.And, ScriptType.Null, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.And, ScriptType.Boolean, ScriptType.Boolean)] = ScriptType.Boolean,
+                [(TokenType.And, ScriptType.Null, ScriptType.Boolean)] = ScriptType.Boolean,
+                [(TokenType.And, ScriptType.Boolean, ScriptType.Null)] = ScriptType.Boolean,
+
+                [(TokenType.Or, ScriptType.Null, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.Or, ScriptType.Boolean, ScriptType.Boolean)] = ScriptType.Boolean,
+                [(TokenType.Or, ScriptType.Null, ScriptType.Boolean)] = ScriptType.Boolean,
+                [(TokenType.Or, ScriptType.Boolean, ScriptType.Null)] = ScriptType.Boolean,
+
+                [(TokenType.Equal, ScriptType.Null, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.Equal, ScriptType.Number, ScriptType.Number)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.Null, ScriptType.Number)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.Number, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.Boolean, ScriptType.Boolean)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.Null, ScriptType.Boolean)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.Boolean, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.String, ScriptType.String)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.Null, ScriptType.String)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.String, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.DateTime, ScriptType.DateTime)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.Null, ScriptType.DateTime)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.DateTime, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.TimeSpan, ScriptType.TimeSpan)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.Null, ScriptType.TimeSpan)] = ScriptType.Boolean,
+                [(TokenType.Equal, ScriptType.TimeSpan, ScriptType.Null)] = ScriptType.Boolean,
+
+                [(TokenType.NotEqual, ScriptType.Null, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.NotEqual, ScriptType.Number, ScriptType.Number)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.Null, ScriptType.Number)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.Number, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.Boolean, ScriptType.Boolean)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.Null, ScriptType.Boolean)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.Boolean, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.String, ScriptType.String)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.Null, ScriptType.String)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.String, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.DateTime, ScriptType.DateTime)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.Null, ScriptType.DateTime)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.DateTime, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.TimeSpan, ScriptType.TimeSpan)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.Null, ScriptType.TimeSpan)] = ScriptType.Boolean,
+                [(TokenType.NotEqual, ScriptType.TimeSpan, ScriptType.Null)] = ScriptType.Boolean,
+
+                [(TokenType.GreaterThen, ScriptType.Null, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.GreaterThen, ScriptType.Number, ScriptType.Number)] = ScriptType.Boolean,
+                [(TokenType.GreaterThen, ScriptType.Null, ScriptType.Number)] = ScriptType.Boolean,
+                [(TokenType.GreaterThen, ScriptType.Number, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.GreaterThen, ScriptType.String, ScriptType.String)] = ScriptType.Boolean,
+                [(TokenType.GreaterThen, ScriptType.Null, ScriptType.String)] = ScriptType.Boolean,
+                [(TokenType.GreaterThen, ScriptType.String, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.GreaterThen, ScriptType.DateTime, ScriptType.DateTime)] = ScriptType.Boolean,
+                [(TokenType.GreaterThen, ScriptType.Null, ScriptType.DateTime)] = ScriptType.Boolean,
+                [(TokenType.GreaterThen, ScriptType.DateTime, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.GreaterThen, ScriptType.TimeSpan, ScriptType.TimeSpan)] = ScriptType.Boolean,
+                [(TokenType.GreaterThen, ScriptType.Null, ScriptType.TimeSpan)] = ScriptType.Boolean,
+                [(TokenType.GreaterThen, ScriptType.TimeSpan, ScriptType.Null)] = ScriptType.Boolean,
+
+                [(TokenType.GreaterThenOrEqual, ScriptType.Null, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.GreaterThenOrEqual, ScriptType.Number, ScriptType.Number)] = ScriptType.Boolean,
+                [(TokenType.GreaterThenOrEqual, ScriptType.Null, ScriptType.Number)] = ScriptType.Boolean,
+                [(TokenType.GreaterThenOrEqual, ScriptType.Number, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.GreaterThenOrEqual, ScriptType.String, ScriptType.String)] = ScriptType.Boolean,
+                [(TokenType.GreaterThenOrEqual, ScriptType.Null, ScriptType.String)] = ScriptType.Boolean,
+                [(TokenType.GreaterThenOrEqual, ScriptType.String, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.GreaterThenOrEqual, ScriptType.DateTime, ScriptType.DateTime)] = ScriptType.Boolean,
+                [(TokenType.GreaterThenOrEqual, ScriptType.Null, ScriptType.DateTime)] = ScriptType.Boolean,
+                [(TokenType.GreaterThenOrEqual, ScriptType.DateTime, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.GreaterThenOrEqual, ScriptType.TimeSpan, ScriptType.TimeSpan)] = ScriptType.Boolean,
+                [(TokenType.GreaterThenOrEqual, ScriptType.Null, ScriptType.TimeSpan)] = ScriptType.Boolean,
+                [(TokenType.GreaterThenOrEqual, ScriptType.TimeSpan, ScriptType.Null)] = ScriptType.Boolean,
+
+                [(TokenType.LessThen, ScriptType.Null, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.LessThen, ScriptType.Number, ScriptType.Number)] = ScriptType.Boolean,
+                [(TokenType.LessThen, ScriptType.Null, ScriptType.Number)] = ScriptType.Boolean,
+                [(TokenType.LessThen, ScriptType.Number, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.LessThen, ScriptType.String, ScriptType.String)] = ScriptType.Boolean,
+                [(TokenType.LessThen, ScriptType.Null, ScriptType.String)] = ScriptType.Boolean,
+                [(TokenType.LessThen, ScriptType.String, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.LessThen, ScriptType.DateTime, ScriptType.DateTime)] = ScriptType.Boolean,
+                [(TokenType.LessThen, ScriptType.Null, ScriptType.DateTime)] = ScriptType.Boolean,
+                [(TokenType.LessThen, ScriptType.DateTime, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.LessThen, ScriptType.TimeSpan, ScriptType.TimeSpan)] = ScriptType.Boolean,
+                [(TokenType.LessThen, ScriptType.Null, ScriptType.TimeSpan)] = ScriptType.Boolean,
+                [(TokenType.LessThen, ScriptType.TimeSpan, ScriptType.Null)] = ScriptType.Boolean,
+
+                [(TokenType.LessThenOrEqual, ScriptType.Null, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.LessThenOrEqual, ScriptType.Number, ScriptType.Number)] = ScriptType.Boolean,
+                [(TokenType.LessThenOrEqual, ScriptType.Null, ScriptType.Number)] = ScriptType.Boolean,
+                [(TokenType.LessThenOrEqual, ScriptType.Number, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.LessThenOrEqual, ScriptType.String, ScriptType.String)] = ScriptType.Boolean,
+                [(TokenType.LessThenOrEqual, ScriptType.Null, ScriptType.String)] = ScriptType.Boolean,
+                [(TokenType.LessThenOrEqual, ScriptType.String, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.LessThenOrEqual, ScriptType.DateTime, ScriptType.DateTime)] = ScriptType.Boolean,
+                [(TokenType.LessThenOrEqual, ScriptType.Null, ScriptType.DateTime)] = ScriptType.Boolean,
+                [(TokenType.LessThenOrEqual, ScriptType.DateTime, ScriptType.Null)] = ScriptType.Boolean,
+                [(TokenType.LessThenOrEqual, ScriptType.TimeSpan, ScriptType.TimeSpan)] = ScriptType.Boolean,
+                [(TokenType.LessThenOrEqual, ScriptType.Null, ScriptType.TimeSpan)] = ScriptType.Boolean,
+                [(TokenType.LessThenOrEqual, ScriptType.TimeSpan, ScriptType.Null)] = ScriptType.Boolean,
+
+            };
+
+
+            UnaryOperators = new Dictionary<(TokenType, ScriptType), ScriptType>()
+            {
+                [(TokenType.Plus, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.Plus, ScriptType.Number)] = ScriptType.Null,
+
+                [(TokenType.Minus, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.Minus, ScriptType.Number)] = ScriptType.Number,
+
+                [(TokenType.Not, ScriptType.Null)] = ScriptType.Null,
+                [(TokenType.Not, ScriptType.Boolean)] = ScriptType.Boolean,
+            };
         }
 
         public List<ScriptError> ResolveScript(Syntax syntax)
@@ -49,12 +203,13 @@ namespace CalculatedField
             var constant = GetConstant(e.Name);
             if(constant != null)
             {
-                e.Type = constant.PropertyType;
+                e.Type = TypeHelper.SystemToScriptType(constant.PropertyType);
                 e.Property = constant;
             }
             else
             {
-                Errors.Add(new ScriptError(e.Token.Index, $"Constant {e.Name} is not defined"));
+                e.Type = ScriptType.Unknown;
+                Errors.Add(ScriptError.UnresolvedIdentifier(e.Token.Index, e.Name));
             }
         }
 
@@ -62,68 +217,34 @@ namespace CalculatedField
         {
             Resolve(e.Left);
             Resolve(e.Right);
-            Type type = null;
-            switch (e.Token.Type)
+            var tuple = (e.Token.Type, e.Left.Type, e.Right.Type);
+            if (BinaryOperators.TryGetValue(tuple, out var type))
             {
-                case TokenType.Plus:
-                    type = ResolveAdd(e, e.Left.Type, e.Right.Type);
-                    break;
-                case TokenType.Minus:
-                    type = CheckSubtract(e.Left.Type, e.Right.Type);
-                    break;
-                case TokenType.Multiply:
-                    type = CheckMultiply(e.Left.Type, e.Right.Type);
-                    break;
-                case TokenType.Divide:
-                    type = CheckDivide(e.Left.Type, e.Right.Type);
-                    break;
-                case TokenType.Equal:
-                case TokenType.NotEqual:
-                    type = CheckCompareEqual(e.Left.Type, e.Right.Type);
-                    break;
-                case TokenType.GreaterThan:
-                case TokenType.GreaterThenOrEqual:
-                case TokenType.LessThen:
-                case TokenType.LessThanOrEqual:
-                    type = CheckCompareOrder(e.Left.Type, e.Right.Type);
-                    break;
-                case TokenType.And:
-                    type = CheckAndOr(e.Left.Type, e.Right.Type);
-                    break;
-                case TokenType.Or:
-                    type = CheckAndOr(e.Left.Type, e.Right.Type);
-                    break;
+                e.Type = type;
+                if (e.Left.Type == ScriptType.Null)
+                    e.Left.Type = e.Right.Type;
+                if (e.Right.Type == ScriptType.Null)
+                    e.Right.Type = e.Left.Type;
             }
-            e.Type = type;
-            if (type == null)
+            else
             {
-                var leftName = GetFiendlyTypeName(e.Left.Type);
-                var rightName = GetFiendlyTypeName(e.Right.Type);
-                Errors.Add(new ScriptError(e.Token.Index, $"Operator {e.Token.Contents} is not defined on {leftName} and {rightName}"));
+                e.Type = ScriptType.Unknown;
+                Errors.Add(ScriptError.UnresolvedOperator(e.Token.Index, e.Token.Contents, e.Left.Type, e.Right.Type));
             }
         }
 
         void ResolveUnaryExpression(UnaryExpression e)
         {
             Resolve(e.Right);
-            Type type = null;
-            switch (e.Token.Type)
+            var tuple = (e.Token.Type, e.Right.Type);
+            if (UnaryOperators.TryGetValue(tuple, out var type))
             {
-                case TokenType.Not:
-                    type = CheckNot(e.Right.Type);
-                    break;
-                case TokenType.Plus:
-                    type = CheckUnaryPlus(e.Right.Type);
-                    break;
-                case TokenType.Minus:
-                    type = CheckUnaryMinus(e.Right.Type);
-                    break;
+                e.Type = type;                
             }
-            e.Type = type;
-            if (type == null)
+            else 
             {
-                var typeName = GetFiendlyTypeName(e.Right.Type);
-                Errors.Add(new ScriptError(e.Token.Index, $"Operator {e.Token.Contents} is not defined on {typeName}"));
+                e.Type = ScriptType.Unknown;
+                Errors.Add(ScriptError.UnresolvedOperator(e.Token.Index, e.Token.Contents, e.Right.Type));
             }
         }
 
@@ -132,17 +253,18 @@ namespace CalculatedField
             Field field = EntityFields.Find(f => f.Name == e.Name);
             if (field == null)
             {
-                Errors.Add(new ScriptError(e.Token.Index, $"Field {e.Name} is not defined"));
+                Errors.Add(ScriptError.UnresolvedField(e.Token.Index, e.Name));
             }
             else
             {
-                e.Type = field.Type;
+                e.Type = ScriptType.Unknown;
+                e.Type = TypeHelper.SystemToScriptType(field.Type);
             }
         }
 
         void ResolveFunctionCallExpression(FunctionExpression e)
         {
-            var argumentTypes = new List<Type>();
+            var argumentTypes = new List<ScriptType>();
             foreach(var argument in e.Arguments)
             {
                 Resolve(argument);
@@ -151,170 +273,140 @@ namespace CalculatedField
             var function = GetFunction(e.Name, argumentTypes);
             if (function == null)
             {
-                var fiendlyTypes = argumentTypes.Select(type => GetFiendlyTypeName(type));
-                Errors.Add(new ScriptError(e.Token.Index, $"Function {e.Name}({string.Join(", ", fiendlyTypes)}) is not defined"));
+                e.Type = ScriptType.Unknown;
+                Errors.Add(ScriptError.UnresolvedFunction(e.Token.Index, e.Name, argumentTypes));
             }
             else
             {
-                e.Method = function;
+                e.Function = function;
                 e.Type = function.ReturnType;
             }
         }
-
-        public static Type CheckUnaryPlus(Type right)
-        {
-
-            if (right == typeof(decimal?) || right == typeof(decimal))
-                return typeof(decimal?);
-            return null;
-        }
-
-        public static Type CheckUnaryMinus(Type right)
-        {
-
-            if (right == typeof(decimal?) || right == typeof(decimal))
-                return typeof(decimal?);
-            return null;
-        }
-
-        public static Type ResolveAdd(BinaryExpression e, Type left, Type right)
-        {
-            Type type = null;
-            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
-                (right == typeof(decimal?) || right == typeof(decimal)))
-                return typeof(decimal?);
-            if ((left == typeof(DateTime?) || left == typeof(DateTime)) &&
-                (right == typeof(TimeSpan?) || right == typeof(TimeSpan)))
-                return typeof(DateTime?);
-            if ((left == typeof(TimeSpan?) || left == typeof(TimeSpan)) &&
-                (right == typeof(TimeSpan?) || right == typeof(TimeSpan)))
-                return typeof(TimeSpan?);
-            if ((left == typeof(string) && right == typeof(string)))
-                return typeof(string);
-            
-            return type;
-        }
-
-        public static Type CheckSubtract(Type left, Type right)
-        {
-
-            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
-                (right == typeof(decimal?) || right == typeof(decimal)))
-                return typeof(decimal?);
-            if ((left == typeof(TimeSpan?) || left == typeof(TimeSpan)) &&
-                (right == typeof(TimeSpan?) || right == typeof(TimeSpan)))
-                return typeof(TimeSpan?);
-            if ((left == typeof(DateTime?) || left == typeof(DateTime)) &&
-                (right == typeof(DateTime?) || right == typeof(DateTime)))
-                return typeof(TimeSpan?);
-            return null;
-        }
-
-        public static Type CheckMultiply(Type left, Type right)
-        {
-
-            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
-                (right == typeof(decimal?) || right == typeof(decimal)))
-                return typeof(decimal?);
-            return null;
-        }
-
-        public static Type CheckDivide(Type left, Type right)
-        {
-
-            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
-                (right == typeof(decimal?) || right == typeof(decimal)))
-                return typeof(decimal?);
-
-            return null;
-        }
-
-        public static Type CheckDivideThenTruncate(Type left, Type right)
-        {
-
-            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
-                (right == typeof(decimal?) || right == typeof(decimal)))
-                return typeof(decimal?);
-            return null;
-        }
-
-        public static Type CheckNot(Type right)
-        {
-            if (right == typeof(bool?) || right == typeof(bool))
-                return typeof(bool?);
-            return null;
-        }
-
-        public static Type CheckAndOr(Type left, Type right)
-        {
-            if ((left == typeof(bool?) || left == typeof(bool)) && 
-                (right == typeof(bool?) || right == typeof(bool)))
-                return typeof(bool?);
-            return null;
-        }
-
-        public static Type CheckCompareOrder(Type left, Type right)
-        {
-            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
-                (right == typeof(decimal?) || right == typeof(decimal)))
-                return typeof(bool?);
-            if (left == typeof(string) && right == typeof(string))
-                return typeof(bool?);
-            if ((left == typeof(TimeSpan?) || left == typeof(TimeSpan)) &&
-                (right == typeof(TimeSpan?) || right == typeof(TimeSpan)))
-                return typeof(bool?);
-            if ((left == typeof(DateTime?) || left == typeof(DateTime)) &&
-                (right == typeof(DateTime?) || right == typeof(DateTime)))
-                return typeof(bool?);
-            return null;
-        }
-
-        public static Type CheckCompareEqual(Type left, Type right)
-        {
-            if ((left == typeof(bool?) || left == typeof(bool)) && 
-                (right == typeof(bool?) || right == typeof(bool)))
-                return typeof(bool?);
-            if ((left == typeof(decimal?) || left == typeof(decimal)) &&
-                (right == typeof(decimal?) || right == typeof(decimal)))
-                return typeof(bool?);
-            if (left == typeof(string) && right == typeof(string))
-                return typeof(bool?);
-            if ((left == typeof(TimeSpan?) || left == typeof(TimeSpan)) &&
-                (right == typeof(TimeSpan?) || right == typeof(TimeSpan)))
-                return typeof(bool?);
-            if ((left == typeof(DateTime?) || left == typeof(DateTime)) &&
-                (right == typeof(DateTime?) || right == typeof(DateTime)))
-                return typeof(bool?);
-            return null;
-        }
-
-        string GetFiendlyTypeName(Type type)
-        {
-            if (type == typeof(bool?) || type == typeof(bool))
-                return "Boolean";
-            if (type == typeof(decimal?) || type == typeof(decimal))
-                return "Number";
-            if (type == typeof(string))
-                return "String";
-            if (type == typeof(TimeSpan?) || type == typeof(TimeSpan)) 
-                return "TimeSpan";
-            if (type == typeof(DateTime?) || type == typeof(DateTime))
-                return "DateTime";
-            return "Undefined";
-
-        }
-
+     
         public PropertyInfo GetConstant(string name)
         {
             return Runtime.Constants.Find(constant => constant.Name == name);
         }
 
-        public MethodInfo GetFunction(string searchName, List<Type> searchArguments)
+        public Function GetFunction(string searchName, List<ScriptType> searchArguments)
         {
-            return Runtime.Functions.FirstOrDefault(function =>
+            if(searchName == "ifs")
+            {
+                var function = TryResolveIfs(searchArguments);
+                if (function != null) return function;
+            }
+            if(searchName == "cases")
+            {
+                var function = ResolveCases(searchArguments);
+                if (function != null) return function;
+            }
+
+            var argumentTypes = searchArguments.Select(TypeHelper.ScriptToSystemType);
+            var method = Runtime.Functions.FirstOrDefault(function =>
                 function.Name == searchName &&
-                searchArguments.SequenceEqual(function.GetParameters().Select(param => param.ParameterType))
+                argumentTypes.SequenceEqual(function.GetParameters().Select(param => param.ParameterType))
             );
+
+            if (method == null) return null;
+
+            return new Function
+            {
+                Name = method.Name,
+                ArgumentTypes = method.GetParameters().Select(param => TypeHelper.SystemToScriptType(param.ParameterType)).ToList(),
+                ReturnType = TypeHelper.SystemToScriptType(method.ReturnType), 
+                Method = method
+            };
+        }
+
+        Function TryResolveIfs(List<ScriptType> arguments)
+        {
+
+            if (arguments.Count < 3)
+            {
+                return null;
+            }
+            bool hasDefault = arguments.Count % 2 == 1;
+            var numIfBranches = arguments.Count / 2;
+            var resultsType = arguments[1];
+            for (var branch = 0; branch < numIfBranches; branch++)
+            {
+                if (arguments[branch * 2] != ScriptType.Null && arguments[branch * 2] != ScriptType.Boolean) return null;
+                if (arguments[branch * 2 + 1] != ScriptType.Null && arguments[branch * 2 + 1] != resultsType) return null;
+            }
+
+            if (hasDefault)
+            {
+                if (arguments[arguments.Count - 1] != ScriptType.Null && arguments[arguments.Count - 1] != resultsType) return null;
+            }
+
+            var argumentTypes = new List<ScriptType>();
+            for (var branch = 0; branch < numIfBranches; branch++)
+            {
+                argumentTypes.Add(ScriptType.Boolean);
+                argumentTypes.Add(resultsType);
+            }
+
+            if(hasDefault)
+            {
+                argumentTypes.Add(resultsType);
+            }
+            
+            return  new Function
+            {
+                Name = "ifs",
+                ReturnType = resultsType,
+                ArgumentTypes = argumentTypes,
+                Method = typeof(LibStandard).GetMethod("ifs")
+            };
+        }
+
+        Function ResolveCases(List<ScriptType> arguments)
+        {
+            if(arguments.Count < 3) return null;
+            bool hasDefault = arguments.Count % 2 == 0;
+            var numCases = (arguments.Count - 1) / 2;
+            var resultsType = arguments[2];
+            var casesType = arguments[0];
+            for (var kase = 0; kase < numCases; kase++)
+            {
+                if(casesType == ScriptType.Null && arguments[1 + kase * 2] != ScriptType.Null && arguments[1 + kase * 2] != ScriptType.Unknown)
+                {
+                    casesType = arguments[1 + kase * 2];
+                }
+
+                if (resultsType == ScriptType.Null && arguments[2 + kase * 2] != ScriptType.Null && arguments[ + kase * 2] != ScriptType.Unknown)
+                {
+                    resultsType = arguments[1 + kase * 2];
+                }
+                if (arguments[1 + kase * 2] != ScriptType.Null && arguments[1 + kase * 2] != casesType) return null;
+                if (arguments[2 + kase * 2] != ScriptType.Null && arguments[2 + kase * 2] != resultsType) return null;
+            }
+
+            if (hasDefault)
+            {
+                if (arguments[arguments.Count - 1] != ScriptType.Null && arguments[arguments.Count - 1] != resultsType) return null;
+            }
+
+            var argumentTypes = new List<ScriptType>();
+            argumentTypes.Add(casesType);
+            for (var kase = 0; kase < numCases; kase++)
+            {
+                argumentTypes.Add(casesType);
+                argumentTypes.Add(resultsType);
+            }
+
+            if (hasDefault)
+            {
+                argumentTypes.Add(resultsType);
+            }
+
+            return new Function
+            {
+                Name = "cases",
+                ReturnType = resultsType,
+                ArgumentTypes = argumentTypes,
+                Method = typeof(LibStandard).GetMethod("cases")
+            };
         }
     }
 }

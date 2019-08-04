@@ -8,7 +8,7 @@ namespace CalculatedField
     abstract class Syntax
     {
         public readonly Token Token;
-        public Type Type { get; set; }
+        public ScriptType Type { get; set; }
         public Syntax(Token token)
         {
             Token = token;
@@ -52,19 +52,19 @@ namespace CalculatedField
             switch (Token.Type)
             {
                 case TokenType.DecimalLiteral:
-                    Type = typeof(decimal?);
+                    Type = ScriptType.Number;
                     break;
                 case TokenType.BooleanLiteral:
-                    Type = typeof(bool?);
+                    Type = ScriptType.Boolean;
                     break;
                 case TokenType.DateTimeLiteral:
-                    Type = typeof(DateTime?);
+                    Type = ScriptType.DateTime;
                     break;
                 case TokenType.StringLiteral:
-                    Type = typeof(string);
+                    Type = ScriptType.String;
                     break;
-                default:
-                    Type = null;
+                case TokenType.Null:
+                    Type = ScriptType.Null;
                     break;
 
             }
@@ -105,7 +105,7 @@ namespace CalculatedField
     {
         public readonly string Name;
         public readonly List<Syntax> Arguments;
-        public MethodInfo Method { get; set; }
+        public Function Function { get; set; }
         public FunctionExpression(string name, List<Syntax> arguments, Token token) : base(token)
         {
             Name = name;

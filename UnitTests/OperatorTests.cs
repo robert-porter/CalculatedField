@@ -8,7 +8,7 @@ namespace UnitTests
     [TestClass]
     public class OperatorTests
     {
-        Engine engine = new Engine();
+        readonly Engine engine = new Engine();
 
 
         [TestMethod]

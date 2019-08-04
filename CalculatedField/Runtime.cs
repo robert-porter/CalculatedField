@@ -39,6 +39,8 @@ namespace CalculatedField
         }
     }
 
+#pragma warning disable IDE1006
+
     static class LibStandard
     {
         public static bool? @if(bool? condition, bool ?valueOnTrue, bool? valueOnFalse)
@@ -75,19 +77,35 @@ namespace CalculatedField
             if (condition.Value) return valueOnTrue;
             else return valueOnFalse;
         }
+
+        public static object ifs(object[] args)
+        {            
+            for(var i = 0; i < args.Length - 1; i+=2)
+            {
+                if (args[i]?.Equals(true) == true) return args[i + 1];
+            }
+            if (args.Length % 2 == 0) return null;
+            else return args[args.Length - 1];
+        }
+
+        public static object cases(object[] args)
+        {
+            var value = args[0];
+            for (var i = 1; i < args.Length - 1; i += 2)
+            {
+                if (args[i] == null && value == null) return args[i + 1];
+                if (args[i]?.Equals(value) == true) return args[i + 1];
+            }
+            if (args.Length % 2 == 1) return null;
+            else return args[args.Length - 1];
+        }
+
     }
 
     static class LibConversion
     {
-        public static decimal? parseInteger(string s)
-        {
-            if (s == null) return null;
-            if (long.TryParse(s, out var result))
-                return result;
-            return null;
-        }
 
-        public static decimal? parseDecimal(string s)
+        public static decimal? parseNumber(string s)
         {
             if (s == null) return null;
             if (decimal.TryParse(s, out var result))
@@ -121,17 +139,19 @@ namespace CalculatedField
 
     static class LibString
     {
-        public static long length(string s)
+        public static decimal? length(string s)
         {
             if (s == null) return 0;
             return s.Length;
         }
 
-        public static string @char(string s, decimal? i)
+        public static string @char(string s, decimal? index)
         {
-            if (s == null || i == 0) return null;
-            if (i < 0 || i >= s.Length) return null;
-            return s?.Substring((int)i, (int)1);
+            if (index == null) return null;
+            index--;
+            if (s == null || index == 0) return null;
+            if (index < 0 || index >= s.Length) return null;
+            return s?.Substring((int)index, 1);
         }
 
         public static string concat(string a, string b)
@@ -149,13 +169,91 @@ namespace CalculatedField
             return a.Contains(b);
         }
 
+        public static bool? endsWith(string s, string value)
+        {
+            if (string.IsNullOrEmpty(value)) return true;
+            if (string.IsNullOrEmpty(s)) return false;
+            return s.EndsWith(value);
+        }
+
+        public static bool startsWith(string s, string value)
+        {
+            if (string.IsNullOrEmpty(value)) return true;
+            if (string.IsNullOrEmpty(s)) return false;
+            return s.StartsWith(value);
+        }
+
+        public static decimal? indexOf(string s, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return -1;
+            if (s == null) return -1;
+            var result = s.IndexOf(value);
+            if (result == -1) return null;
+            return result + 1;
+        }
+
+        public static decimal? lastIndexOf(string s, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return -1;
+            if (s == null) return -1;
+            var result = s.LastIndexOf(value);
+            if (result == -1) return null;
+            return result + 1;
+        }
+
+        public static string insert(string s, decimal? index, string value)
+        {
+            if (index == null) return null;
+            if (string.IsNullOrEmpty(value)) return s;
+            index--;
+            if (s == null) s = "";
+            if (index < 0) index = 0;
+            if (index >= s.Length) index = s.Length;
+            return s.Insert((int)index, value);
+        }
+
         public static string substring(string s, decimal? startIndex, decimal? length)
         {
             if (s == null || startIndex == null || length == null) return null;
-            if (startIndex < 0 || length < 0) return null;
+            startIndex--;
+            if (startIndex < 0 || startIndex >= s.Length || length < 0) return null;
             if (startIndex >= s.Length) return null;
             if (startIndex + length >= s.Length) length = s.Length - startIndex;
             return s.Substring((int)startIndex, (int)length);
+        }
+
+        public static string substring(string s, decimal? startIndex)
+        {
+            if (s == null || startIndex == null) return null;
+            startIndex--;
+            if (startIndex < 0 || startIndex >= s.Length) return null;
+              return s.Substring((int)startIndex);
+        }
+
+        public static string remove(string s, decimal? startIndex, decimal? count)
+        {
+            if (s == null || startIndex == null || count == null)
+                return null;
+            startIndex--;
+            return s.Remove((int)startIndex, (int)count);
+        }
+
+        public static string replace(string s, string oldValue, string newValue)
+        {
+            if (string.IsNullOrEmpty(oldValue)) return null;
+            return s?.Replace(oldValue, newValue ?? "");
+        }
+
+        public static string padLeft(string s, decimal? width)
+        {
+            if (width == null) return s;
+            return s.PadLeft((int)width.Value);
+        }
+
+        public static string padRight(string s, decimal? width)
+        {
+            if (width == null) return s;
+            return s.PadRight((int)width.Value);
         }
 
         public static string trim(string s) => s?.Trim();

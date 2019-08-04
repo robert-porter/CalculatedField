@@ -4,43 +4,49 @@ namespace CalculatedField
 {
     class Parser
     {
-        List<TokenType[]> BinaryOperators;
-        TokenType[] UnaryOperators;
+        readonly List<TokenType[]> BinaryOperators;
+        readonly TokenType[] UnaryOperators;
         List<ScriptError> Errors;
-        List<Token> Tokens;
+        readonly List<Token> Tokens;
         int Index;
 
-        public Parser(List<Token> tokens) 
+        public Parser(List<Token> tokens)
         {
             Tokens = tokens;
             Index = 0;
 
-            BinaryOperators = new List<TokenType[]>();
-            BinaryOperators.Add(new TokenType[] { TokenType.Or });
-            BinaryOperators.Add(new TokenType[] { TokenType.And });
-            BinaryOperators.Add(new TokenType[]
+            BinaryOperators = new List<TokenType[]>() {
+            new TokenType[]
+            {
+                TokenType.Or
+            },
+            new TokenType[]
+            {
+                TokenType.And
+            },
+            new TokenType[]
             {
                 TokenType.Equal,
-                TokenType.NotEqual 
-            });
-            BinaryOperators.Add(new TokenType[]
+                TokenType.NotEqual
+            },
+            new TokenType[]
             {
                 TokenType.LessThen,
-                TokenType.LessThanOrEqual,
-                TokenType.GreaterThan,
+                TokenType.LessThenOrEqual,
+                TokenType.GreaterThen,
                 TokenType.GreaterThenOrEqual
-            });
-            BinaryOperators.Add(new TokenType[]
+            },
+            new TokenType[]
             {
                 TokenType.Plus,
                 TokenType.Minus,
-            });
-
-            BinaryOperators.Add(new TokenType[]
+            },
+            new TokenType[]
             {
                 TokenType.Multiply,
                 TokenType.Divide,
-            });
+            }
+            };
 
             UnaryOperators = new TokenType[]
             {
@@ -118,7 +124,7 @@ namespace CalculatedField
                             var argument = ParseBinaryExpression(0);
                             arguments.Add(argument);
                             if (!Match(TokenType.CloseParenthese))
-                                Expect(TokenType.Comma, TokenType.CloseParenthese);
+                                Expect(TokenType.Comma);
                         }
                         Expect(TokenType.CloseParenthese);
                         return new FunctionExpression(token.Contents, arguments, token);
@@ -140,32 +146,31 @@ namespace CalculatedField
                 case TokenType.Null:
                     return new LiteralExpression(token.Contents, token);
                 default:
-                    throw new ScriptError(Index, $"Unexpected token {token.Contents}");
+                    throw ScriptError.UnexpectedToken(Index, token.Contents);
             }
         }
 
         public Token Read()
         {
             if (Index >= Tokens.Count - 1)
-                throw new ScriptError(Index, "Unexpected end of script");
+                throw ScriptError.UnexpectedEOF(Index);
             return Tokens[Index++];
         }
 
         public bool Match(params TokenType[] types)
         {
             if (Index >= Tokens.Count)
-                throw new ScriptError(Index, "Unexpected end of script");
+                throw ScriptError.UnexpectedEOF(Index);
             foreach (var type in types)
                 if (Tokens[Index].Type == type)
                     return true;
             return false;
         }
 
-
         public Token Expect(params TokenType[] types)
         {
             if (Index >= Tokens.Count)
-                throw new ScriptError(Index, "Unexpected end of script");
+                throw ScriptError.UnexpectedEOF(Index);
 
             foreach (var type in types)
             {
@@ -176,8 +181,7 @@ namespace CalculatedField
                     return token;
                 }
             }
-            var typesString = string.Join(", ", types);
-            throw new ScriptError(Index, $"Unexpected token {Tokens[Index].Contents}. ");
+            throw ScriptError.UnexpectedToken(Index, Tokens[Index].Contents);
         }
     }
 }

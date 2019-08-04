@@ -4,9 +4,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.29025.244
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9D4C7DFA-119B-4400-AC43-4DFECADA9229}"
-	ProjectSection(SolutionItems) = preProject
-		test.script = test.script
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CalculatedField", "CalculatedField\CalculatedField.csproj", "{24ECDCA0-809A-479F-9A39-337DE7B25ECF}"
 EndProject

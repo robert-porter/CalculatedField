@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace CalculatedField
@@ -56,7 +57,7 @@ namespace CalculatedField
                     return null;
             }
         }
-
+       
         public Expression GenerateBinaryExpression(BinaryExpression expression)
         {
             var left = Generate(expression.Left);
@@ -65,7 +66,7 @@ namespace CalculatedField
             switch (expression.Token.Type)
             {
                 case TokenType.Plus:
-                    if (expression.Left.Type == typeof(string) && expression.Right.Type == typeof(string))
+                    if (expression.Left.Type == ScriptType.String && expression.Right.Type == ScriptType.String)
                         return GenerateStringAddExpression(left, right);
                     else
                         return Expression.Add(left, right);
@@ -76,22 +77,22 @@ namespace CalculatedField
                 case TokenType.Divide:
                     return Expression.Divide(left, right);
                 case TokenType.LessThen:
-                    if(expression.Left.Type == typeof(string) && expression.Right.Type == typeof(string))
+                    if(expression.Left.Type == ScriptType.String && expression.Right.Type == ScriptType.String)
                         return GenerateStringLessExpression(left, right);
                     else
                         return Expression.LessThan(left, right);
-                case TokenType.LessThanOrEqual:
-                    if (expression.Left.Type == typeof(string) && expression.Right.Type == typeof(string))
+                case TokenType.LessThenOrEqual:
+                    if (expression.Left.Type == ScriptType.String && expression.Right.Type == ScriptType.String)
                         return GenerateStringLessOrEqualExpression(left, right);
                         else
                         return Expression.LessThanOrEqual(left, right);                   
-                case TokenType.GreaterThan:
-                    if (expression.Left.Type == typeof(string) && expression.Right.Type == typeof(string))
+                case TokenType.GreaterThen:
+                    if (expression.Left.Type == ScriptType.String && expression.Right.Type == ScriptType.String)
                         return GenerateStringGreaterExpression(left, right);
                     else
                         return Expression.GreaterThan(left, right);
                 case TokenType.GreaterThenOrEqual:
-                    if (expression.Left.Type == typeof(string) && expression.Right.Type == typeof(string))
+                    if (expression.Left.Type == ScriptType.String && expression.Right.Type == ScriptType.String)
                         return GenerateStringGreaterOrEqualExpression(left, right);
                     else
                         return Expression.GreaterThanOrEqual(left, right);
@@ -142,25 +143,34 @@ namespace CalculatedField
         public Expression GenerateLiteralExpression(LiteralExpression expression)
         {
             var constant = Expression.Constant(expression.Value);
-            return Expression.Convert(constant, expression.Type);
+            if (expression.Type == ScriptType.Null)
+            {
+                return constant;
+            }
+            else
+            {
+                return Expression.Convert(constant, TypeHelper.ScriptToSystemType(expression.Type));
+            }
         }
 
         public Expression GenerateConstantExpression(IdentifierExpression expression)
         {
             var property = Expression.Property(null, expression.Property);
-            return Expression.Convert(property, expression.Type);
+            return Expression.Convert(property, TypeHelper.ScriptToSystemType(expression.Type));
         }
 
         public Expression GenerateFieldExpression(FieldExpression expression)
         {
-            // record.ContainsKey(id) ? record[id] : null
+            //generate: record.ContainsKey(FieldId) ? record[FieldId] : null
             var field = EntityFields.Find(f => f.Name == expression.Name);
             var keyConstant = Expression.Constant(field.FieldId);
             var access = Expression.Property(Record, "Item", keyConstant);
             var containsKeyMethod = typeof(Dictionary<Guid, object>).GetMethod("ContainsKey");
             var containsKey = Expression.Call(Record, containsKeyMethod, new Expression[] { keyConstant });
             var condition = Expression.Condition(containsKey, access, Expression.Constant(null));
-            return Expression.Convert(condition, field.Type);
+            var scriptType = TypeHelper.SystemToScriptType(field.Type);
+            var type = TypeHelper.ScriptToSystemType(scriptType);
+            return Expression.Convert(condition, type);
         }
 
         public Expression GenerateFunctionCallExpression(FunctionExpression call)
@@ -170,7 +180,16 @@ namespace CalculatedField
             {
                 arguments.Add(Generate(argument));
             }
-            return Expression.Call(null, call.Method, arguments);
+            if (call.Name == "cases" || call.Name == "ifs")
+            {
+                arguments = arguments.Select(arg => (Expression) Expression.Convert(arg, typeof(object))).ToList();
+                var argument = Expression.NewArrayInit(typeof(object), arguments);
+                return Expression.Call(null, call.Function.Method, argument);
+            }
+            else
+            {
+                return Expression.Call(null, call.Function.Method, arguments);
+            }
         }
     }
 }

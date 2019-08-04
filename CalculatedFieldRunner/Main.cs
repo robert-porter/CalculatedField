@@ -6,7 +6,7 @@ namespace CalculatedField
 {
     static class ProgramMain
     {
-        static void Main(string[] args)
+        static void Main()
         {
             Engine engine = new Engine();
             while (true)
