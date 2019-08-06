@@ -5,8 +5,9 @@ using System.Text.RegularExpressions;
 
 namespace CalculatedField
 {
-    enum TokenType
+    public enum TokenType
     {
+        Unknown,
         Plus,
         Minus,
         Multiply,
@@ -34,7 +35,7 @@ namespace CalculatedField
         EOF
     }
 
-    class Token
+    public class Token
     {
         public string Contents { get; set; }
         public TokenType Type { get; set; }
@@ -131,7 +132,14 @@ namespace CalculatedField
                 }
                 if (token == null)
                 {
-                    errors.Add(ScriptError.UnrecognizedSymbol(index, source[index].ToString()));
+                    var errorToken = new Token
+                    {
+                        Type = TokenType.Unknown,
+                        Contents = source[index].ToString(),
+                        Index = index,
+
+                    };
+                    errors.Add(ScriptError.UnrecognizedSymbol(errorToken, source[index].ToString()));
                     index++;
                 }
                 else

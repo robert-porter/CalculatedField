@@ -5,19 +5,59 @@ using System.Linq.Expressions;
 
 namespace CalculatedField
 {
+
+
     class LambdaGenerator
     {
         ParameterExpression Record;
         List<Field> EntityFields;
 
-        public Func<Dictionary<Guid, object>, object> GenerateProgram(Syntax script, List<Field> entityFields)
+        public Func<Dictionary<string, object>, object> GenerateProgram(Syntax script, List<Field> entityFields)
         {
             EntityFields = entityFields;
-            Record = Expression.Parameter(typeof(Dictionary<Guid, object>));
+            Record = Expression.Parameter(typeof(Dictionary<string, object>));
             var expression = Generate(script);
             expression = Expression.Convert(expression, typeof(object));
             var parameters = new ParameterExpression[] { Record };
-            return Expression.Lambda<Func<Dictionary<Guid, object>, object>>(expression, parameters).Compile();
+            var lambda = Expression.Lambda<Func<Dictionary<string, object>, object>>(expression, parameters).Compile();
+            return (records) => lambda(CopyRecord(records));
+        }
+
+        static Dictionary<string, object> CopyRecord(Dictionary<string, object> records)
+        {
+            var results = new Dictionary<string, object>();
+            foreach(var record in records)
+            {
+                foreach (var kvp in records)
+                {
+                    var type = kvp.Value.GetType();
+                    if (type == typeof(int?))
+                    {
+                        results[kvp.Key] = (decimal?)(int?)kvp.Value;
+                    }
+                    else if (type == typeof(int))
+                    {
+                        results[kvp.Key] = (decimal?)(int)kvp.Value;
+                    }
+                    else if (type == typeof(long?))
+                    {
+                        results[kvp.Key] = (decimal?)(long?)kvp.Value;
+                    }
+                    else if (type == typeof(long))
+                    {
+                        results[kvp.Key] = (decimal?)(long?)kvp.Value;
+                    }
+                    else if (type == typeof(decimal))
+                    {
+                        results[kvp.Key] = (decimal?)(decimal)kvp.Value;
+                    }
+                    else
+                    {
+                        results[kvp.Key] = kvp.Value;
+                    }
+                }
+            }
+            return results;
         }
 
         Expression Generate(Syntax expression)
@@ -136,7 +176,7 @@ namespace CalculatedField
 
         Expression GenerateStringAddExpression(Expression left, Expression right)
         {
-            var methodInfo = typeof(LibString).GetMethod("concat");
+            var methodInfo = typeof(Lib).GetMethod("concat");
             return Expression.Call(null, methodInfo, new Expression[] { left, right });
         }
 
@@ -159,18 +199,30 @@ namespace CalculatedField
             return Expression.Convert(property, TypeHelper.ScriptToSystemType(expression.Type));
         }
 
+        Type GetNullableType(Type type)
+        {
+            type = Nullable.GetUnderlyingType(type) ?? type; 
+            if (type.IsValueType)
+                return typeof(Nullable<>).MakeGenericType(type);
+            else
+                return type;
+        }
+
+
         public Expression GenerateFieldExpression(FieldExpression expression)
         {
-            //generate: record.ContainsKey(FieldId) ? record[FieldId] : null
+            // record.ContainsKey(FieldId) ? record[FieldId] : null
             var field = EntityFields.Find(f => f.Name == expression.Name);
+            var scriptType = TypeHelper.ScriptToSystemType(TypeHelper.SystemToScriptType(field.Type));
             var keyConstant = Expression.Constant(field.FieldId);
             var access = Expression.Property(Record, "Item", keyConstant);
-            var containsKeyMethod = typeof(Dictionary<Guid, object>).GetMethod("ContainsKey");
-            var containsKey = Expression.Call(Record, containsKeyMethod, new Expression[] { keyConstant });
-            var condition = Expression.Condition(containsKey, access, Expression.Constant(null));
-            var scriptType = TypeHelper.SystemToScriptType(field.Type);
-            var type = TypeHelper.ScriptToSystemType(scriptType);
-            return Expression.Convert(condition, type);
+            return Expression.Convert(access, scriptType);
+            //var containsKeyMethod = typeof(Dictionary<string, object>).GetMethod("ContainsKey");
+            //var containsKey = Expression.Call(Record, containsKeyMethod, new Expression[] { keyConstant });
+            //var condition = Expression.Condition(containsKey, access, Expression.Convert(Expression.Constant(null), type));
+
+            //return Expression.Convert(condition, type);
+            return Expression.Convert(access, scriptType);
         }
 
         public Expression GenerateFunctionCallExpression(FunctionExpression call)

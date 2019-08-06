@@ -5,11 +5,16 @@ namespace CalculatedField
 {
     public class Engine
     {
+        public Engine()
+        {
+        }
+
         public object CalculateValue(string script)
         {
             var fields = new List<Field>();
-            var record = new Dictionary<Guid, object>();
+            var record = new Dictionary<string, object>();
             var calculate = Compile(script, fields);
+
             if (calculate != null)
             {
                 var value = calculate(record);
@@ -18,7 +23,27 @@ namespace CalculatedField
             return null;
         }
 
-        public Func<Dictionary<Guid, object>, object> Compile(string script, List<Field> fields)
+        public List<ScriptError> GetErrors(string script, List<Field> fields)
+        {
+            List<ScriptError> errors = new List<ScriptError>();
+            var tokenizer = new Tokenizer();
+            tokenizer.CreateTokenDefinitions();
+            var (tokens, tokenizerErrors) = tokenizer.Tokenize(script);
+            errors.AddRange(tokenizerErrors);
+            Parser parser = new Parser(tokens);
+            var (expression, parserErrors) = parser.Parse();
+            errors.AddRange(parserErrors);
+            if (expression != null)
+            {
+                var resolver = new Resolver(fields);
+                var resolverErrors = resolver.ResolveScript(expression);
+                errors.AddRange(resolverErrors);
+                return errors;
+            }
+            return errors;
+        }
+
+        public Func<Dictionary<string, object>, object> Compile(string script, List<Field> fields)
         {
             List<ScriptError> errors = new List<ScriptError>();
             var tokenizer = new Tokenizer();
@@ -38,10 +63,6 @@ namespace CalculatedField
                     var codeGenerator = new LambdaGenerator();
                     return codeGenerator.GenerateProgram(expression, fields);
                 }
-            }
-            foreach (var error in errors)
-            {
-                Console.WriteLine(error.Message);
             }
             return null;
         }

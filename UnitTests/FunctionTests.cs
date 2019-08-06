@@ -7,7 +7,6 @@ namespace UnitTests
     [TestClass]
     public class FunctionTests
     {
-
         readonly Engine engine = new Engine();
 
         [TestMethod]
@@ -26,10 +25,6 @@ namespace UnitTests
 
             value = engine.CalculateValue(@"cases(3, 2, ""two"", 4, ""four"", 3, ""three"")");
             Assert.AreEqual("three", value);
-
-
-
-
         }
 
         [TestMethod]

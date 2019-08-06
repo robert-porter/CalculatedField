@@ -4,57 +4,68 @@ using System.Linq;
 
 namespace CalculatedField
 {
-    class ScriptError : Exception
+    public class ScriptError : Exception
     {
-        public readonly int Index;
+        public readonly Token Token;
         public readonly string Description;
 
-        public ScriptError(int index, string description) 
+        public ScriptError(Token token, string description)
         {
-            Index = index;
+            Token = token;
             Description = description;
         }
 
-        public override string Message => $"{Index + 1}: {Description}";
+        public (int, int) Range => (Token.Index, Token.Index + Token.Contents.Length);       
 
-        public static ScriptError UnrecognizedSymbol(int index, string symbol)
+        public override string Message
         {
-            return new ScriptError(index, $"Unrecognized symbol {symbol}.");
+            get
+            {
+                if (Token != null)
+                    return $"{Token.Index + 1}: {Description}";
+                else
+                    return Description;
+            }
         }
 
-        public static ScriptError UnexpectedEOF(int index)
+        public static ScriptError UnrecognizedSymbol(Token token, string symbol)
         {
-            return new ScriptError(index, "Unexpected end of script.");
+            return new ScriptError(token, $"Unrecognized symbol {symbol}.");
         }
 
-        public static ScriptError UnexpectedToken(int index, string contents)
+        public static ScriptError UnexpectedEOF(Token token)
         {
-            return new ScriptError(index, $"Unexpected token {contents}.");
+            return new ScriptError(token, "Unexpected end of script.");
         }
 
-        public static ScriptError UnresolvedFunction(int index, string name, List<ScriptType> argumentTypes)
+        public static ScriptError UnexpectedToken(Token token, string contents)
         {
-            return new ScriptError(index, $"Function {name}({string.Join(", ", argumentTypes)}) is not defined.");
+            return new ScriptError(token, $"Unexpected token {contents}.");
         }
 
-        public static ScriptError UnresolvedOperator(int index, string operatorString, ScriptType left, ScriptType right)
+        public static ScriptError UnresolvedFunction(Token token, string name, List<ScriptType> argumentTypes)
         {
-            return new ScriptError(index, $"Operator {operatorString} is not defined on {left} and {right}");
+            return new ScriptError(token, $"Function {name}({string.Join(", ", argumentTypes)}) is not defined.");
         }
 
-        public static ScriptError UnresolvedOperator(int index, string operatorString, ScriptType right)
+        public static ScriptError UnresolvedOperator(Token token, string operatorString, ScriptType left, ScriptType right)
         {
-            return new ScriptError(index, $"Operator {operatorString} is not defined on {right}");
+            return new ScriptError(token, $"Operator {operatorString} is not defined on {left} and {right}");
         }
 
-        public static ScriptError UnresolvedIdentifier(int index, string name)
+        public static ScriptError UnresolvedOperator(Token token, string operatorString, ScriptType right)
         {
-            return new ScriptError(index, $"Constant {name} is not defined");
+            return new ScriptError(token, $"Operator {operatorString} is not defined on {right}");
         }
 
-        public static ScriptError UnresolvedField(int index, string name)
+        public static ScriptError UnresolvedIdentifier(Token token, string name)
         {
-            return new ScriptError(index, $"Field {name} is not defined");
+            return new ScriptError(token, $"Constant {name} is not defined");
+        }
+
+        public static ScriptError UnresolvedField(Token token, string name)
+        {
+            return new ScriptError(token, $"Field {name} is not defined");
         }
 
     }

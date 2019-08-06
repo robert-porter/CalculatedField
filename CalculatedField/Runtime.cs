@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 
 namespace CalculatedField
 {
 
-    static class Runtime
+    public static class Runtime
     {
         public static List<MethodInfo> Functions { get; private set; }
         public static List<PropertyInfo> Constants { get; set; }
@@ -15,25 +16,40 @@ namespace CalculatedField
         {
             Functions = new List<MethodInfo>();
             Constants = new List<PropertyInfo>();
-            addAll(typeof(LibMath));
-            addAll(typeof(LibString));
-            addAll(typeof(LibDateTime));
-            addAll(typeof(LibConversion));
-            addAll(typeof(LibTimeSpan));
-            addAll(typeof(LibStandard));
+            var type = typeof(Lib);
 
-            void addAll(Type type)
+            var methodInfos = type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly)
+                .Where(methodInfo => !methodInfo.IsSpecialName);
+            foreach (var methodInfo in methodInfos)
             {
-                var methodInfos = type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly)
-                    .Where(methodInfo => !methodInfo.IsSpecialName);
-                foreach (var methodInfo in methodInfos)
+                Functions.Add(methodInfo);
+            }
+            var propertyInfos = type.GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly);
+            foreach (var propertyInfo in propertyInfos)
+            {
+                Constants.Add(propertyInfo);
+            }
+        }
+
+        public static void CreateDocInfo(string path)
+        {
+            using (var writer = File.CreateText(path))
+            {
+                foreach (var function in Functions)
                 {
-                    Functions.Add(methodInfo);
-                }
-                var propertyInfos = type.GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly);
-                foreach(var propertyInfo in propertyInfos)
-                {
-                    Constants.Add(propertyInfo);
+                    var arguments = function.GetParameters().Select(param => TypeHelper.SystemToScriptType(param.ParameterType));
+                    var returnType = TypeHelper.SystemToScriptType(function.ReturnType);
+
+                    writer.WriteLine("\\section*{$" + function.Name + "(" + string.Join(", ", arguments) + ")$}");
+                    writer.WriteLine("\\subsubsection*{Description}");
+                    writer.WriteLine("TODO: ");
+                    writer.WriteLine("\\subsubsection*{Parameters}");
+                    arguments.ToList().ForEach(arg => {
+                        writer.WriteLine("\\subsubsection*{$x$: " + arg + "}");
+                        writer.WriteLine("TODO: ");
+                    });
+                    writer.WriteLine("\\subsubsection*{Returns: " + returnType + "}");
+                    writer.WriteLine("\\");
                 }
             }
         }
@@ -41,7 +57,7 @@ namespace CalculatedField
 
 #pragma warning disable IDE1006
 
-    static class LibStandard
+    static class Lib
     {
         public static bool? @if(bool? condition, bool ?valueOnTrue, bool? valueOnFalse)
         {
@@ -79,8 +95,9 @@ namespace CalculatedField
         }
 
         public static object ifs(object[] args)
-        {            
-            for(var i = 0; i < args.Length - 1; i+=2)
+        {
+            if (args.Count() < 2) return null;
+            for (var i = 0; i < args.Length - 1; i+=2)
             {
                 if (args[i]?.Equals(true) == true) return args[i + 1];
             }
@@ -90,20 +107,27 @@ namespace CalculatedField
 
         public static object cases(object[] args)
         {
+            if (args.Count() < 3) return null;
             var value = args[0];
             for (var i = 1; i < args.Length - 1; i += 2)
             {
-                if (args[i] == null && value == null) return args[i + 1];
-                if (args[i]?.Equals(value) == true) return args[i + 1];
+                if (args[i] == null && value == null || args[i]?.Equals(value) == true) return args[i + 1];
             }
             if (args.Length % 2 == 1) return null;
             else return args[args.Length - 1];
         }
 
-    }
-
-    static class LibConversion
-    {
+        public static string stringify(object[] args)        //TODO:
+        {
+            // maybe use StringBuilder here
+            var result = ""; 
+            foreach(var arg in args)
+            {
+                if(arg != null) // add stringifyWithNulls ? 
+                    result += arg.ToString();
+            }
+            return result;
+        }
 
         public static decimal? parseNumber(string s)
         {
@@ -129,16 +153,11 @@ namespace CalculatedField
             return null;
         }
 
-        public static string toString(long? x) => x?.ToString();
         public static string toString(decimal? x) => x?.ToString();
         public static string toString(bool? x) => x?.ToString();
         public static string toString(DateTime? x) => x?.ToString();
         public static string toString(TimeSpan? x) => x?.ToString();
 
-    }
-
-    static class LibString
-    {
         public static decimal? length(string s)
         {
             if (s == null) return 0;
@@ -261,10 +280,6 @@ namespace CalculatedField
         public static string trimEnd(string s) => s?.TrimEnd();
         public static string toUpper(string s) => s?.ToUpper();   
         public static string toLower(string s) => s?.ToLower();
-    }
-
-    static class LibTimeSpan
-    {
 
         public static decimal? days(TimeSpan? ts) => (decimal)ts?.Days;
         public static decimal? hours(TimeSpan? ts) => (decimal)ts?.Hours;
@@ -300,10 +315,6 @@ namespace CalculatedField
             return TimeSpan.FromDays((double)days);
         }
 
-    }
-
-    static class LibDateTime
-    {
         public static decimal? second(DateTime? dt) => dt?.Second;
         public static decimal? minute(DateTime? dt) => dt?.Minute;
         public static decimal? hour(DateTime? dt) => dt?.Hour;
@@ -352,17 +363,8 @@ namespace CalculatedField
         public static DateTime? EndOfNextQuarter => new DateTime(DateTime.Today.Year, DateTime.Today.Month - (DateTime.Today.Month % 3) + 1, 1).AddMonths(5).AddDays(-1);
         public static DateTime? StartOfNextYear => new DateTime(DateTime.Today.Year + 1, 1, 1);
         public static DateTime? EndOfNextYear => new DateTime(DateTime.Today.Year + 1, 12, 31);
-    }
 
-    static class LibMath
-    {
         public static decimal? abs(decimal? x)
-        {
-            if (x == null) return null;
-            return Math.Abs(x.Value);
-        }
-
-        public static long? abs(long? x)
         {
             if (x == null) return null;
             return Math.Abs(x.Value);
@@ -380,12 +382,6 @@ namespace CalculatedField
             return (decimal)Math.Exp((double)x);
         }
 
-        public static decimal? exp(long? x)
-        {
-            if (x == null) return null;
-            return (decimal)Math.Exp((double)x);
-        }
-
         public static decimal? floor(decimal? x)
         {
             if (x == null) return null;
@@ -398,46 +394,17 @@ namespace CalculatedField
             return (decimal)Math.Log((double)x, (double)b);
         }
 
-        public static decimal? log(long? x, decimal? b)
-        {
-            if (x == null || b == null) return null;
-            return (decimal)Math.Log(x.Value, (double)b);
-        }
-
-        public static decimal? log(decimal? x, long? b)
-        {
-            if (x == null || b == null) return null;
-            return (decimal)Math.Log((double)x, b.Value);
-        }
-
-        public static decimal? log(long? x, long? b)
-        {
-            if (x == null || b == null) return null;
-            return (decimal)Math.Log(x.Value, b.Value);
-        }
-
         public static decimal? log(decimal? x)
         {
             if (x == null) return null;
             return (decimal)Math.Log((double)x);
         }
 
-        public static decimal? log(long? x)
-        {
-            if (x == null) return null;
-            return (decimal)Math.Log(x.Value);
-        }
 
         public static decimal? log10(decimal? x)
         {
             if (x == null) return null;
             return (decimal)Math.Log10((double)x);
-        }
-
-        public static decimal? log10(long? x)
-        {
-            if (x == null) return null;
-            return (decimal)Math.Log10(x.Value);
         }
 
         public static decimal? sqrt(decimal? x)
@@ -446,17 +413,6 @@ namespace CalculatedField
             return (decimal)Math.Sqrt((double)x);
         }
 
-        public static decimal? sqrt(long? x)
-        {
-            if (x == null) return null;
-            return (decimal)Math.Sqrt(x.Value);
-        }
-
-        public static long? max(long? x, long? y)
-        {
-            if (x == null || y == null) return null;
-            return Math.Max(x.Value, y.Value);
-        }
 
         public static decimal? max(decimal? x, decimal? y)
         {
@@ -465,49 +421,13 @@ namespace CalculatedField
             return Math.Max(x.Value, y.Value);
         }
 
-        public static decimal? max(decimal? x, long? y)
-        {
-            if (x == null || y == null) return null;
-            return Math.Max(x.Value, y.Value);
-        }
-
-        public static decimal? max(long? x, decimal? y)
-        {
-            if (x == null || y == null) return null;
-            return Math.Max(x.Value, y.Value);
-        }
-
-        public static long? min(long? x, long? y)
-        {
-            if (x == null || y == null) return null;
-            return Math.Min(x.Value, y.Value);
-        }
-
         public static decimal? min(decimal? x, decimal? y)
         {
             if (x == null || y == null) return null;
             return Math.Min(x.Value, y.Value);
         }
 
-        public static decimal? min(decimal? x, long? y)
-        {
-            if (x == null || y == null) return null;
-            return Math.Min(x.Value, y.Value);
-        }
-
-        public static decimal? min(long? x, decimal? y)
-        {
-            if (x == null || y == null) return null;
-            return Math.Min(x.Value, y.Value);
-        }
-
-        public static long? sign(decimal? x)
-        {
-            if (x == null) return null;
-            return Math.Sign(x.Value);
-        }
-
-        public static long? sign(long? x)
+        public static decimal? sign(decimal? x)
         {
             if (x == null) return null;
             return Math.Sign(x.Value);
@@ -531,23 +451,6 @@ namespace CalculatedField
             return (decimal) Math.Pow((double)a.Value, (double)b.Value);
         }
 
-        public static decimal? pow(decimal? a, long? b)
-        {
-            if (a == null || b == null) return null;
-            return (decimal)Math.Pow((double)a.Value, b.Value);
-        }
-
-        public static decimal? pow(long? a, decimal? b)
-        {
-            if (a == null || b == null) return null;
-            return (decimal)Math.Pow(a.Value, (double)b.Value);
-        }
-
-        public static decimal? pow(long? a, long? b)
-        {
-            if (a == null || b == null) return null;
-            return (decimal) Math.Pow(a.Value, b.Value);
-        }
     }
     
 }

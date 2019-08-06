@@ -209,7 +209,7 @@ namespace CalculatedField
             else
             {
                 e.Type = ScriptType.Unknown;
-                Errors.Add(ScriptError.UnresolvedIdentifier(e.Token.Index, e.Name));
+                Errors.Add(ScriptError.UnresolvedIdentifier(e.Token, e.Name));
             }
         }
 
@@ -229,7 +229,7 @@ namespace CalculatedField
             else
             {
                 e.Type = ScriptType.Unknown;
-                Errors.Add(ScriptError.UnresolvedOperator(e.Token.Index, e.Token.Contents, e.Left.Type, e.Right.Type));
+                Errors.Add(ScriptError.UnresolvedOperator(e.Token, e.Token.Contents, e.Left.Type, e.Right.Type));
             }
         }
 
@@ -244,7 +244,7 @@ namespace CalculatedField
             else 
             {
                 e.Type = ScriptType.Unknown;
-                Errors.Add(ScriptError.UnresolvedOperator(e.Token.Index, e.Token.Contents, e.Right.Type));
+                Errors.Add(ScriptError.UnresolvedOperator(e.Token, e.Token.Contents, e.Right.Type));
             }
         }
 
@@ -253,7 +253,7 @@ namespace CalculatedField
             Field field = EntityFields.Find(f => f.Name == e.Name);
             if (field == null)
             {
-                Errors.Add(ScriptError.UnresolvedField(e.Token.Index, e.Name));
+                Errors.Add(ScriptError.UnresolvedField(e.Token, e.Name));
             }
             else
             {
@@ -274,7 +274,7 @@ namespace CalculatedField
             if (function == null)
             {
                 e.Type = ScriptType.Unknown;
-                Errors.Add(ScriptError.UnresolvedFunction(e.Token.Index, e.Name, argumentTypes));
+                Errors.Add(ScriptError.UnresolvedFunction(e.Token, e.Name, argumentTypes));
             }
             else
             {
@@ -290,38 +290,41 @@ namespace CalculatedField
 
         public Function GetFunction(string searchName, List<ScriptType> searchArguments)
         {
-            if(searchName == "ifs")
+            if (searchName == "ifs")
             {
-                var function = TryResolveIfs(searchArguments);
+                var function = ResolveIfs(searchArguments);
                 if (function != null) return function;
             }
-            if(searchName == "cases")
+            else if (searchName == "cases")
             {
                 var function = ResolveCases(searchArguments);
                 if (function != null) return function;
             }
-
-            var argumentTypes = searchArguments.Select(TypeHelper.ScriptToSystemType);
-            var method = Runtime.Functions.FirstOrDefault(function =>
-                function.Name == searchName &&
-                argumentTypes.SequenceEqual(function.GetParameters().Select(param => param.ParameterType))
-            );
-
-            if (method == null) return null;
-
-            return new Function
+            else
             {
-                Name = method.Name,
-                ArgumentTypes = method.GetParameters().Select(param => TypeHelper.SystemToScriptType(param.ParameterType)).ToList(),
-                ReturnType = TypeHelper.SystemToScriptType(method.ReturnType), 
-                Method = method
-            };
+                var argumentTypes = searchArguments.Select(TypeHelper.ScriptToSystemType);               
+                var method = Runtime.Functions.FirstOrDefault(function =>
+                    function.Name == searchName &&
+                    argumentTypes.SequenceEqual(function.GetParameters().Select(param => param.ParameterType))
+                );
+
+                if (method == null) return null;
+
+                return new Function
+                {
+                    Name = method.Name,
+                    ArgumentTypes = method.GetParameters().Select(param => TypeHelper.SystemToScriptType(param.ParameterType)).ToList(),
+                    ReturnType = TypeHelper.SystemToScriptType(method.ReturnType),
+                    Method = method
+                };
+            }
+            return null;
         }
 
-        Function TryResolveIfs(List<ScriptType> arguments)
+        Function ResolveIfs(List<ScriptType> arguments)
         {
 
-            if (arguments.Count < 3)
+            if (arguments.Count < 2)
             {
                 return null;
             }
@@ -356,7 +359,7 @@ namespace CalculatedField
                 Name = "ifs",
                 ReturnType = resultsType,
                 ArgumentTypes = argumentTypes,
-                Method = typeof(LibStandard).GetMethod("ifs")
+                Method = typeof(Lib).GetMethod("ifs")
             };
         }
 
@@ -387,8 +390,10 @@ namespace CalculatedField
                 if (arguments[arguments.Count - 1] != ScriptType.Null && arguments[arguments.Count - 1] != resultsType) return null;
             }
 
-            var argumentTypes = new List<ScriptType>();
-            argumentTypes.Add(casesType);
+            var argumentTypes = new List<ScriptType>
+            {
+                casesType
+            };
             for (var kase = 0; kase < numCases; kase++)
             {
                 argumentTypes.Add(casesType);
@@ -405,8 +410,9 @@ namespace CalculatedField
                 Name = "cases",
                 ReturnType = resultsType,
                 ArgumentTypes = argumentTypes,
-                Method = typeof(LibStandard).GetMethod("cases")
+                Method = typeof(Lib).GetMethod("cases")
             };
         }
+
     }
 }

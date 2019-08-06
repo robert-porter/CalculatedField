@@ -146,21 +146,21 @@ namespace CalculatedField
                 case TokenType.Null:
                     return new LiteralExpression(token.Contents, token);
                 default:
-                    throw ScriptError.UnexpectedToken(Index, token.Contents);
+                    throw ScriptError.UnexpectedToken(token, token.Contents);
             }
         }
 
         public Token Read()
         {
             if (Index >= Tokens.Count - 1)
-                throw ScriptError.UnexpectedEOF(Index);
+                throw ScriptError.UnexpectedEOF(null);
             return Tokens[Index++];
         }
 
         public bool Match(params TokenType[] types)
         {
             if (Index >= Tokens.Count)
-                throw ScriptError.UnexpectedEOF(Index);
+                throw ScriptError.UnexpectedEOF(null);
             foreach (var type in types)
                 if (Tokens[Index].Type == type)
                     return true;
@@ -170,7 +170,7 @@ namespace CalculatedField
         public Token Expect(params TokenType[] types)
         {
             if (Index >= Tokens.Count)
-                throw ScriptError.UnexpectedEOF(Index);
+                throw ScriptError.UnexpectedEOF(null);
 
             foreach (var type in types)
             {
@@ -181,7 +181,7 @@ namespace CalculatedField
                     return token;
                 }
             }
-            throw ScriptError.UnexpectedToken(Index, Tokens[Index].Contents);
+            throw ScriptError.UnexpectedToken(Tokens[Index], Tokens[Index].Contents);
         }
     }
 }
